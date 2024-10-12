@@ -1,0 +1,20 @@
+{
+  "name": "advanced-bookmark-manager",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:frontend": "vite",
+    "dev:backend": "node server/index.js",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "build": "tsc && vite build",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "test:server": "node server/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/advanced-bookmark-manager.git"
+  },
+  // ... (rest of the file remains the same)
+}
