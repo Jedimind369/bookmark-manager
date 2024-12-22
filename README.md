@@ -1,60 +1,35 @@
-# Advanced Bookmark Manager
+# Bookmark Manager
 
-This project is a full-stack application for managing bookmarks with advanced features, built with React, TypeScript, and Node.js.
+Modern bookmark management system with Firebase backend and Google authentication.
 
-## Prerequisites
-
-- Node.js (v14 or later)
-- MongoDB
-
-## Setup
+## Quick Start
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/advanced-bookmark-manager.git
-   cd advanced-bookmark-manager
-   ```
+```bash
+git clone https://github.com/yourusername/bookmark-manager.git
+cd bookmark-manager
+```
 
 2. Install dependencies:
-   ```
-   npm install
-   ```
+```bash
+npm install
+```
 
-3. Create a `.env` file in the root directory and add the following:
-   ```
-   MONGODB_URI=mongodb://localhost:27017/bookmark-manager
-   JWT_SECRET=your_jwt_secret_here
-   PORT=3000
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
+3. Configure Firebase:
+- Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
+- Enable Google Authentication
+- Create a Firestore database
+- Add your Firebase config to `.env`
 
-4. Start the development servers:
-   ```
-   npm run dev
-   ```
-
-This will start both the frontend and backend servers concurrently.
-
-## Available Scripts
-
-- `npm run dev`: Starts both frontend and backend servers
-- `npm run dev:frontend`: Starts only the frontend server
-- `npm run dev:backend`: Starts only the backend server
-- `npm run build`: Builds the frontend for production
-- `npm run lint`: Runs the linter
-- `npm run preview`: Previews the production build
-- `npm run test:server`: Runs a test script to check the backend health
-
-## Project Structure
-
-- `/src`: Frontend React application
-- `/server`: Backend Node.js server
-- `/public`: Static assets
+4. Start development server:
+```bash
+npm run dev
+```
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request

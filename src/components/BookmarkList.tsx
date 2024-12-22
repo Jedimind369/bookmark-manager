@@ -1,51 +1,54 @@
-import React from 'react';
-import { Bookmark } from '../types';
-import { ExternalLink } from 'lucide-react';
+import { useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { RootState } from '../store'
+import { fetchBookmarks, deleteBookmark } from '../store/bookmarksSlice'
 
-interface BookmarkListProps {
-  bookmarks: Bookmark[];
-  onDelete: (id: string) => void;
-}
+export function BookmarkList() {
+  const dispatch = useDispatch()
+  const { items, loading, error } = useSelector((state: RootState) => state.bookmarks)
+  const { user } = useSelector((state: RootState) => state.auth)
 
-const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks, onDelete }) => {
+  useEffect(() => {
+    if (user) {
+      dispatch(fetchBookmarks(user.id))
+    }
+  }, [dispatch, user])
+
+  if (loading) return <div>Loading bookmarks...</div>
+  if (error) return <div>Error: {error}</div>
+  if (items.length === 0) return <div>No bookmarks found</div>
+
   return (
-    <div className="space-y-4">
-      {bookmarks.map((bookmark) => (
-        <div key={bookmark.id} className="bg-white p-4 rounded shadow">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {items.map(bookmark => (
+        <div key={bookmark.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-semibold">{bookmark.title}</h3>
-              <a
-                href={bookmark.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline flex items-center"
-              >
-                {bookmark.url} <ExternalLink size={16} className="ml-1" />
-              </a>
-            </div>
-            <button
-              onClick={() => onDelete(bookmark.id)}
+            <h3 className="font-bold">{bookmark.title}</h3>
+            <button 
+              onClick={() => dispatch(deleteBookmark(bookmark.id))}
               className="text-red-500 hover:text-red-700"
             >
               Delete
             </button>
           </div>
-          <p className="mt-2 text-gray-600">{bookmark.description}</p>
-          <div className="mt-2">
-            <span className="font-semibold">Categories:</span>{' '}
-            {bookmark.categories.join(', ')}
-          </div>
-          <div className="mt-1">
-            <span className="font-semibold">Tags:</span> {bookmark.tags.join(', ')}
-          </div>
-          <div className="mt-1 text-sm text-gray-500">
-            Added on: {bookmark.dateAdded.toLocaleDateString()}
+          <a 
+            href={bookmark.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline block mt-1"
+          >
+            {bookmark.url}
+          </a>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">{bookmark.description}</p>
+          <div className="flex gap-2 mt-2">
+            {bookmark.tags.map(tag => (
+              <span key={tag} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded-full text-sm">
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       ))}
     </div>
-  );
-};
-
-export default BookmarkList;
+  )
+}
