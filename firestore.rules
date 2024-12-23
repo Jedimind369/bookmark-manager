@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow the backup service account full access
+    match /{document=**} {
+      allow read, write: if request.auth.token.firebase.sign_in_provider == 'service_account'
+                        && request.auth.token.email.matches('firebase-adminsdk-.*@.*\\.iam\\.gserviceaccount\\.com');
+    }
+    
+    // Regular user rules
+    match /bookmarks/{bookmarkId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /system/backup {
+      allow read: if request.auth != null;
+      allow write: if request.auth.token.firebase.sign_in_provider == 'service_account';
+    }
+  }
+} 
