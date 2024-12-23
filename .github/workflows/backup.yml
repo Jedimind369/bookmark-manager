@@ -82,6 +82,13 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+          service_account_key: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          export_default_credentials: true
+
       - name: Install Dependencies
         run: |
           npm ci
@@ -113,21 +120,21 @@ jobs:
           echo "Setting up Google Application Credentials..."
           export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase-service-account.json"
           
-          echo "Verifying Firebase authentication..."
-          firebase projects:list --token "$(echo $FIREBASE_SERVICE_ACCOUNT | jq -r .private_key)"
+          echo "Authenticating with Firebase..."
+          firebase use "$FIREBASE_PROJECT_ID"
 
       - name: Export Database
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-service-account.json
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
           echo "Creating backup directory..."
           mkdir -p backup
           
           echo "Exporting Firestore data..."
-          firebase firestore:export backup/firestore.json \
-            --project ${{ secrets.FIREBASE_PROJECT_ID }} \
-            --token "$(cat $GOOGLE_APPLICATION_CREDENTIALS | jq -r .private_key)"
-        continue-on-error: true
+          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+          gcloud config set project "$FIREBASE_PROJECT_ID"
+          gcloud firestore export backup/
 
       - name: Create Backup
         run: |
