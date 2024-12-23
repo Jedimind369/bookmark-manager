@@ -1,0 +1,28 @@
+name: Backup
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Create Backup
+        run: |
+          mkdir -p backups
+          timestamp=$(date +%Y%m%d-%H%M%S)
+          git archive --format=tar.gz -o backups/backup-$timestamp.tar.gz HEAD
+
+      - name: Upload Backup
+        uses: actions/upload-artifact@v3
+        with:
+          name: backup
+          path: backups/
+          retention-days: 30
