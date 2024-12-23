@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.0.1",
+    "@types/axios": "^0.9.36",
+    "axios": "^1.7.9",
     "firebase": "^10.7.1",
     "idb": "^8.0.0",
     "react": "^18.2.0",

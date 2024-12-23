@@ -14,24 +14,28 @@ export interface BookmarkAnalysis {
 }
 
 export interface Bookmark {
-  id: string;
+  id?: string;
   url: string;
   title: string;
   description?: string;
   tags: string[];
   collections: string[];
-  dateAdded: Date;
+  insights?: string[];
+  categories?: string[];
+  personalGrowthNotes?: string;
   userId: string;
-  analysis?: BookmarkAnalysis;
-  syncStatus?: 'pending' | 'synced' | 'error';
+  createdAt: Date;
 }
 
 export interface BookmarkFormData {
   url: string;
   title: string;
-  description: string;
+  description?: string;
   tags: string[];
-  collections?: string[];
+  collections: string[];
+  insights?: string[];
+  categories?: string[];
+  personalGrowthNotes?: string;
 }
 
 export interface InsightInputProps {

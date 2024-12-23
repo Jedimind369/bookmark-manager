@@ -1,44 +1,40 @@
-import { Bookmark } from '../types';
+import { Bookmark, BookmarkFormData } from '../types';
 
-export const parseBookmarksFile = async (file: File): Promise<Partial<Bookmark>[]> => {
+export const parseBookmarksFile = async (file: File): Promise<BookmarkFormData[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(content, 'text/html');
-      const bookmarkNodes = doc.querySelectorAll('a');
-      
-      const bookmarks: Partial<Bookmark>[] = Array.from(bookmarkNodes).map((node) => ({
-        url: node.getAttribute('href') || '',
-        title: node.textContent || '',
-        dateAdded: new Date(Number(node.getAttribute('add_date')) * 1000),
-      }));
-      
-      resolve(bookmarks);
+      try {
+        const text = e.target?.result as string;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const bookmarks = Array.from(doc.getElementsByTagName('a'));
+        
+        const parsedBookmarks: BookmarkFormData[] = bookmarks.map(bookmark => ({
+          url: bookmark.href,
+          title: bookmark.textContent || bookmark.href,
+          description: bookmark.getAttribute('description') || '',
+          tags: [],
+          collections: [],
+          insights: [],
+          categories: []
+        }));
+        
+        resolve(parsedBookmarks);
+      } catch (error) {
+        reject(error);
+      }
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(reader.error);
     reader.readAsText(file);
   });
 };
 
-export const processBookmarkWithAI = async (bookmark: Partial<Bookmark>): Promise<Bookmark> => {
-  // Simulate AI processing with a delay
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  // In a real-world scenario, you would make an API call to an AI service here
-  const processedBookmark: Bookmark = {
-    id: Date.now().toString(),
-    url: bookmark.url || '',
-    title: bookmark.title || '',
-    description: `AI-generated description for ${bookmark.title}`,
-    categories: ['AI-generated Category'],
-    tags: ['ai-tag'],
-    dateAdded: bookmark.dateAdded || new Date(),
-    insights: ['AI-generated insight'],
-    personalGrowthNotes: 'AI-generated personal growth note',
-    relatedConcepts: ['AI-generated related concept'],
+export const processBookmarkWithAI = async (bookmark: BookmarkFormData): Promise<Bookmark> => {
+  // Add AI processing logic here
+  return {
+    ...bookmark,
+    userId: '', // This should be set by the calling function
+    createdAt: new Date()
   };
-
-  return processedBookmark;
 };
