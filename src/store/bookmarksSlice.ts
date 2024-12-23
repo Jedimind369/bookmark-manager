@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { collection, addDoc, deleteDoc, doc, getDocs, query, where, DocumentData } from 'firebase/firestore'
+import { collection, addDoc, deleteDoc, doc, getDocs, query, where, DocumentData, writeBatch } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import type { Bookmark, BookmarkFormData } from '../types'
 import { analyzeContent } from '../services/ai'
-import { handleApiError } from '../utils/errorHandling'
-import { saveBookmarkOffline, getOfflineBookmarks, syncPendingChanges } from '../services/db'
+import { handleApiError, ApiError } from '../utils/errorHandling'
+import { saveBookmarkOffline, deleteBookmarkOffline, getOfflineBookmarks, syncPendingChanges } from '../services/db'
 
 interface BookmarksState {
   items: Bookmark[]
@@ -14,6 +14,8 @@ interface BookmarksState {
   filteredItems: Bookmark[]
   selectedTags: string[]
   sortBy: 'date' | 'title' | 'credibility'
+  isSyncing: boolean
+  lastSyncTime: string | null
 }
 
 const initialState: BookmarksState = {
@@ -23,22 +25,35 @@ const initialState: BookmarksState = {
   searchQuery: '',
   filteredItems: [],
   selectedTags: [],
-  sortBy: 'date'
+  sortBy: 'date',
+  isSyncing: false,
+  lastSyncTime: null
 }
 
 export const fetchBookmarks = createAsyncThunk(
   'bookmarks/fetchBookmarks',
   async (userId: string, { rejectWithValue }) => {
     try {
+      // Get online bookmarks
       const q = query(collection(db, 'bookmarks'), where('userId', '==', userId))
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
+      const onlineBookmarks = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         dateAdded: new Date((doc.data() as DocumentData).dateAdded)
       })) as Bookmark[]
+
+      // Get offline bookmarks
+      const offlineBookmarks = await getOfflineBookmarks()
+
+      // Merge bookmarks, preferring online versions
+      const bookmarkMap = new Map<string, Bookmark>()
+      offlineBookmarks.forEach(bookmark => bookmarkMap.set(bookmark.id, bookmark))
+      onlineBookmarks.forEach(bookmark => bookmarkMap.set(bookmark.id, bookmark))
+
+      return Array.from(bookmarkMap.values())
     } catch (error) {
-      return rejectWithValue('Failed to fetch bookmarks')
+      return rejectWithValue(handleApiError(error))
     }
   }
 )
@@ -49,7 +64,11 @@ export const addBookmark = createAsyncThunk(
     try {
       let analysis
       if (navigator.onLine) {
-        analysis = await analyzeContent(bookmark.url)
+        try {
+          analysis = await analyzeContent(bookmark.url)
+        } catch (error) {
+          console.warn('Failed to analyze content:', error)
+        }
       }
 
       const newBookmark: Bookmark = {
@@ -68,11 +87,17 @@ export const addBookmark = createAsyncThunk(
       }
 
       if (navigator.onLine) {
-        const docRef = await addDoc(collection(db, 'bookmarks'), {
-          ...newBookmark,
-          dateAdded: newBookmark.dateAdded.toISOString()
-        })
-        newBookmark.id = docRef.id
+        try {
+          const docRef = await addDoc(collection(db, 'bookmarks'), {
+            ...newBookmark,
+            dateAdded: newBookmark.dateAdded.toISOString()
+          })
+          newBookmark.id = docRef.id
+        } catch (error) {
+          console.warn('Failed to save online, falling back to offline storage:', error)
+          newBookmark.id = `offline-${Date.now()}`
+          await saveBookmarkOffline(newBookmark)
+        }
       } else {
         newBookmark.id = `offline-${Date.now()}`
         await saveBookmarkOffline(newBookmark)
@@ -89,25 +114,42 @@ export const deleteBookmark = createAsyncThunk(
   'bookmarks/deleteBookmark',
   async (id: string, { rejectWithValue }) => {
     try {
-      if (!id.startsWith('offline-')) {
-        await deleteDoc(doc(db, 'bookmarks', id))
+      if (navigator.onLine && !id.startsWith('offline-')) {
+        try {
+          await deleteDoc(doc(db, 'bookmarks', id))
+        } catch (error) {
+          console.warn('Failed to delete online, falling back to offline storage:', error)
+          await deleteBookmarkOffline(id)
+        }
+      } else {
+        await deleteBookmarkOffline(id)
       }
       return id
     } catch (error) {
-      return rejectWithValue('Failed to delete bookmark')
+      return rejectWithValue(handleApiError(error))
     }
   }
 )
 
 export const syncBookmarks = createAsyncThunk(
   'bookmarks/syncBookmarks',
-  async (_, { dispatch }) => {
-    if (navigator.onLine) {
-      await syncPendingChanges()
-      const offlineBookmarks = await getOfflineBookmarks()
-      return offlineBookmarks
+  async (_, { rejectWithValue }) => {
+    try {
+      if (navigator.onLine) {
+        await syncPendingChanges()
+        const offlineBookmarks = await getOfflineBookmarks()
+        return {
+          bookmarks: offlineBookmarks,
+          timestamp: new Date().toISOString()
+        }
+      }
+      return {
+        bookmarks: [],
+        timestamp: null
+      }
+    } catch (error) {
+      return rejectWithValue(handleApiError(error))
     }
-    return []
   }
 )
 
@@ -117,13 +159,7 @@ export const bookmarksSlice = createSlice({
   reducers: {
     searchBookmarks: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload
-      const query = action.payload.toLowerCase()
-      state.filteredItems = state.items.filter(bookmark => 
-        bookmark.title.toLowerCase().includes(query) ||
-        bookmark.description?.toLowerCase().includes(query) ||
-        bookmark.tags.some(tag => tag.toLowerCase().includes(query)) ||
-        bookmark.analysis?.summary?.toLowerCase().includes(query) || false
-      )
+      state.filteredItems = filterBookmarks(state.items, action.payload, state.selectedTags)
     },
     toggleTag: (state, action: PayloadAction<string>) => {
       const tag = action.payload
@@ -148,7 +184,7 @@ export const bookmarksSlice = createSlice({
       .addCase(fetchBookmarks.fulfilled, (state, action) => {
         state.loading = false
         state.items = action.payload
-        state.filteredItems = action.payload
+        state.filteredItems = filterBookmarks(action.payload, state.searchQuery, state.selectedTags)
       })
       .addCase(fetchBookmarks.rejected, (state, action) => {
         state.loading = false
@@ -161,11 +197,7 @@ export const bookmarksSlice = createSlice({
       .addCase(addBookmark.fulfilled, (state, action) => {
         state.loading = false
         state.items.push(action.payload)
-        state.filteredItems = filterBookmarks(
-          [...state.items, action.payload],
-          state.searchQuery,
-          state.selectedTags
-        )
+        state.filteredItems = filterBookmarks(state.items, state.searchQuery, state.selectedTags)
       })
       .addCase(addBookmark.rejected, (state, action) => {
         state.loading = false
@@ -184,16 +216,39 @@ export const bookmarksSlice = createSlice({
         state.loading = false
         state.error = action.payload as string
       })
+      .addCase(syncBookmarks.pending, (state) => {
+        state.isSyncing = true
+        state.error = null
+      })
+      .addCase(syncBookmarks.fulfilled, (state, action) => {
+        state.isSyncing = false
+        state.lastSyncTime = action.payload?.timestamp ?? null
+        if (action.payload?.bookmarks?.length > 0) {
+          state.items = action.payload.bookmarks
+          state.filteredItems = filterBookmarks(action.payload.bookmarks, state.searchQuery, state.selectedTags)
+        }
+      })
+      .addCase(syncBookmarks.rejected, (state, action) => {
+        state.isSyncing = false
+        state.error = action.payload instanceof ApiError 
+          ? action.payload.message 
+          : typeof action.payload === 'string' 
+            ? action.payload 
+            : 'An unknown error occurred'
+      })
   }
 })
 
 function filterBookmarks(items: Bookmark[], query: string, tags: string[]): Bookmark[] {
+  const searchTerms = query.toLowerCase().split(' ').filter(Boolean)
+  
   return items.filter(bookmark => {
-    const matchesSearch = !query || 
-      bookmark.title.toLowerCase().includes(query.toLowerCase()) ||
-      bookmark.description?.toLowerCase().includes(query.toLowerCase()) ||
-      bookmark.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase())) ||
-      bookmark.analysis?.summary?.toLowerCase().includes(query.toLowerCase()) || false
+    const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => 
+      bookmark.title.toLowerCase().includes(term) ||
+      bookmark.description?.toLowerCase().includes(term) ||
+      bookmark.tags.some(tag => tag.toLowerCase().includes(term)) ||
+      bookmark.analysis?.summary?.toLowerCase().includes(term) || false
+    )
 
     const matchesTags = tags.length === 0 || 
       tags.every(tag => bookmark.tags.includes(tag))
@@ -210,7 +265,9 @@ function sortBookmarks(items: Bookmark[], sortBy: 'date' | 'title' | 'credibilit
       case 'title':
         return a.title.localeCompare(b.title)
       case 'credibility':
-        return (b.analysis?.credibilityScore || 0) - (a.analysis?.credibilityScore || 0)
+        const aScore = a.analysis?.credibilityScore ?? 0
+        const bScore = b.analysis?.credibilityScore ?? 0
+        return bScore - aScore
       default:
         return 0
     }

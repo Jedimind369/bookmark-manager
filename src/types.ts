@@ -23,6 +23,7 @@ export interface Bookmark {
   dateAdded: Date;
   userId: string;
   analysis?: BookmarkAnalysis;
+  syncStatus?: 'pending' | 'synced' | 'error';
 }
 
 export interface BookmarkFormData {
@@ -62,4 +63,10 @@ export interface ErrorState {
   message: string;
   code?: string;
   details?: unknown;
+}
+
+export interface SyncStatus {
+  lastSync: Date | null;
+  isPending: boolean;
+  error: string | null;
 }
