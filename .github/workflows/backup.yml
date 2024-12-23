@@ -29,44 +29,76 @@ jobs:
       - name: Install Dependencies
         run: |
           npm ci
-          npm install -g firebase-tools
+          npm install -g firebase-tools@latest
+
+      - name: Verify Firebase CLI
+        run: firebase --version
 
       - name: Setup Firebase
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
+          echo "Verifying Firebase configuration..."
+          
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo "Error: FIREBASE_SERVICE_ACCOUNT secret is not set"
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set"
             exit 1
           fi
+          
           if [ -z "$FIREBASE_PROJECT_ID" ]; then
-            echo "Error: FIREBASE_PROJECT_ID secret is not set"
+            echo "::error::FIREBASE_PROJECT_ID secret is not set"
             exit 1
           fi
+          
+          echo "Creating service account file..."
           echo "$FIREBASE_SERVICE_ACCOUNT" > firebase-service-account.json
+          
+          echo "Setting up Google Application Credentials..."
           export GOOGLE_APPLICATION_CREDENTIALS="$PWD/firebase-service-account.json"
+          
+          echo "Verifying Firebase authentication..."
+          firebase projects:list --token "$(echo $FIREBASE_SERVICE_ACCOUNT | jq -r .private_key)"
 
       - name: Export Database
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-service-account.json
         run: |
+          echo "Creating backup directory..."
           mkdir -p backup
-          firebase firestore:export backup/firestore.json --project ${{ secrets.FIREBASE_PROJECT_ID }}
+          
+          echo "Exporting Firestore data..."
+          firebase firestore:export backup/firestore.json \
+            --project ${{ secrets.FIREBASE_PROJECT_ID }} \
+            --token "$(cat $GOOGLE_APPLICATION_CREDENTIALS | jq -r .private_key)"
         continue-on-error: true
 
       - name: Create Backup
         run: |
+          echo "Creating backup directories..."
           mkdir -p backups
+          
+          echo "Setting timestamp..."
           timestamp=$(date +%Y%m%d-%H%M%S)
-          # Create source code backup
+          
+          echo "Creating source code backup..."
           git archive --format=tar.gz -o "backups/source-$timestamp.tar.gz" HEAD
-          # Copy database backup if it exists
+          
+          echo "Copying database backup..."
           if [ -f backup/firestore.json ]; then
             cp backup/firestore.json "backups/firestore-$timestamp.json"
+            echo "Database backup copied successfully"
+          else
+            echo "::warning::No database backup found"
           fi
-          # Create backup info file
-          echo "Backup created at: $(date)" > "backups/info-$timestamp.txt"
-          echo "Commit: ${{ github.sha }}" >> "backups/info-$timestamp.txt"
-          echo "Branch: ${{ github.ref_name }}" >> "backups/info-$timestamp.txt"
+          
+          echo "Creating backup info file..."
+          {
+            echo "Backup created at: $(date)"
+            echo "Commit: ${{ github.sha }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "backups/info-$timestamp.txt"
 
       - name: Upload Backup
         uses: actions/upload-artifact@v3
@@ -81,7 +113,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            gh run list --workflow=backup.yml --json conclusion,createdAt --jq '.[] | select(.conclusion=="success") | .createdAt' | head -n 1 > last_successful_backup.txt
+            echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > last_successful_backup.txt
+            echo "Backup completed successfully"
+          else
+            echo "::error::Backup failed"
           fi
 
       - name: Create Status Issue
@@ -98,7 +133,13 @@ jobs:
             - **Branch**: ${context.ref}
             - **Timestamp**: ${new Date().toISOString()}
             
+            ## Error Details
             Please check the workflow logs for more details.
+            
+            ## Next Steps
+            1. Verify that the Firebase service account credentials are correctly set up
+            2. Ensure the Firebase project ID is correct
+            3. Check if the Firebase project has the necessary permissions
             `;
             
             await github.rest.issues.create({
@@ -112,6 +153,7 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
+          echo "Cleaning up sensitive files..."
           rm -f firebase-service-account.json
           rm -rf backup/
           rm -rf backups/
