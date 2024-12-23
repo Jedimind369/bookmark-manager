@@ -2,12 +2,26 @@
 
 Modern bookmark management system with Firebase backend and Google authentication.
 
+## Features
+- Real-time bookmark synchronization
+- Google Authentication
+- Tag-based organization
+- Search functionality
+- Dark mode support
+- PWA ready
+
+## Tech Stack
+- React 18 + TypeScript
+- Firebase (Auth & Firestore)
+- Redux Toolkit
+- Tailwind CSS
+
 ## Quick Start
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/bookmark-manager.git
-cd bookmark-manager
+git clone https://github.com/Jedimind369/Advanced-Bookmark-Management-System-with-React-and-TypeScript.git
+cd Advanced-Bookmark-Management-System-with-React-and-TypeScript
 ```
 
 2. Install dependencies:
