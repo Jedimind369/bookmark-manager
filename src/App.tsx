@@ -6,9 +6,10 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { initializeAuth } from './store/authSlice'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { syncBookmarks } from './store/bookmarksSlice'
+import { AppDispatch } from './store'
 
 function App() {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
 
   useEffect(() => {
     dispatch(initializeAuth())

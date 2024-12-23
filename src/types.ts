@@ -1,19 +1,28 @@
 import { ReactNode } from 'react';
 
+export interface User {
+  id: string;
+  email: string;
+  uid: string;
+}
+
+export interface BookmarkAnalysis {
+  summary: string;
+  keyInsights: string[];
+  credibilityScore: number;
+  readingTime: number;
+}
+
 export interface Bookmark {
   id: string;
   url: string;
   title: string;
   description?: string;
   tags: string[];
+  collections: string[];
   dateAdded: Date;
   userId: string;
-  analysis?: {
-    summary: string;
-    keyInsights: string[];
-    credibilityScore: number;
-    readingTime: number;
-  };
+  analysis?: BookmarkAnalysis;
 }
 
 export interface BookmarkFormData {
@@ -21,9 +30,8 @@ export interface BookmarkFormData {
   title: string;
   description: string;
   tags: string[];
+  collections?: string[];
 }
-
-// ... (keep the rest of the existing types)
 
 export interface InsightInputProps {
   insights: string[];
@@ -33,4 +41,25 @@ export interface InsightInputProps {
 export interface PersonalGrowthInputProps {
   notes: string;
   onNotesChange: (notes: string) => void;
+}
+
+export interface SortOptions {
+  date: 'asc' | 'desc';
+  title: 'asc' | 'desc';
+  credibility: 'asc' | 'desc';
+}
+
+export interface FilterOptions {
+  tags: string[];
+  collections: string[];
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
+
+export interface ErrorState {
+  message: string;
+  code?: string;
+  details?: unknown;
 }

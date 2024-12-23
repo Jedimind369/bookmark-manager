@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
 export async function checkBackupStatus(): Promise<{
@@ -7,10 +7,10 @@ export async function checkBackupStatus(): Promise<{
   error?: string
 }> {
   try {
-    const backupRef = db.collection('system').doc('backup')
-    const backupDoc = await backupRef.get()
+    const backupRef = doc(db, 'system', 'backup')
+    const backupDoc = await getDoc(backupRef)
     
-    if (!backupDoc.exists) {
+    if (!backupDoc.exists()) {
       return {
         lastBackup: null,
         status: 'pending'
@@ -25,18 +25,25 @@ export async function checkBackupStatus(): Promise<{
     }
   } catch (error) {
     console.error('Failed to check backup status:', error)
+    if (error instanceof Error) {
+      return {
+        lastBackup: null,
+        status: 'failed',
+        error: error.message
+      }
+    }
     return {
       lastBackup: null,
       status: 'failed',
-      error: error.message
+      error: 'Unknown error occurred'
     }
   }
 }
 
 export async function updateBackupStatus(status: 'success' | 'failed', error?: string): Promise<void> {
   try {
-    const backupRef = db.collection('system').doc('backup')
-    await backupRef.set({
+    const backupRef = doc(db, 'system', 'backup')
+    await setDoc(backupRef, {
       lastBackup: new Date(),
       status,
       error,

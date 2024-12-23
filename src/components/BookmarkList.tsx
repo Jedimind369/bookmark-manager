@@ -1,21 +1,26 @@
 import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { RootState } from '../store'
+import { RootState, AppDispatch } from '../store'
 import { fetchBookmarks, deleteBookmark, setSortBy, toggleTag } from '../store/bookmarksSlice'
+import type { Bookmark } from '../types'
 
 export function BookmarkList() {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const { filteredItems, loading, error, searchQuery, sortBy, selectedTags } = useSelector((state: RootState) => state.bookmarks)
   const { user } = useSelector((state: RootState) => state.auth)
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       dispatch(fetchBookmarks(user.id))
     }
   }, [dispatch, user])
 
   const handleSort = (value: 'date' | 'title' | 'credibility'): void => {
     dispatch(setSortBy(value))
+  }
+
+  const handleDelete = async (id: string): Promise<void> => {
+    await dispatch(deleteBookmark(id))
   }
 
   const allTags = [...new Set(filteredItems.flatMap(b => b.tags))].sort()
@@ -49,10 +54,10 @@ export function BookmarkList() {
     <div>
       <div className="mb-6 space-y-4">
         <div className="flex gap-2">
-          {['date', 'title', 'credibility'].map(option => (
+          {(['date', 'title', 'credibility'] as const).map(option => (
             <button
               key={option}
-              onClick={() => handleSort(option as 'date' | 'title' | 'credibility')}
+              onClick={() => handleSort(option)}
               className={`px-3 py-1 rounded ${
                 sortBy === option 
                   ? 'bg-blue-500 text-white' 
@@ -82,12 +87,12 @@ export function BookmarkList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredItems.map(bookmark => (
+        {filteredItems.map((bookmark: Bookmark) => (
           <div key={bookmark.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
             <div className="flex justify-between items-start">
               <h3 className="font-bold">{bookmark.title}</h3>
               <button 
-                onClick={() => dispatch(deleteBookmark(bookmark.id))}
+                onClick={() => handleDelete(bookmark.id)}
                 className="text-red-500 hover:text-red-700"
               >
                 Delete

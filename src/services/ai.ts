@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { NetworkError, ContentError } from '../utils/errorHandling';
+import type { Bookmark } from '../types';
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -7,6 +8,14 @@ const openai = new OpenAI({
 });
 
 interface ContentAnalysis {
+  summary: string;
+  keyInsights: string[];
+  credibilityScore: number;
+  readingTime: number;
+  suggestedTags: string[];
+}
+
+interface AIResponse {
   summary: string;
   keyInsights: string[];
   credibilityScore: number;
@@ -53,7 +62,7 @@ export async function analyzeContent(url: string): Promise<ContentAnalysis> {
       max_tokens: 500
     })
 
-    const result = safeJSONParse(completion.choices[0].message.content)
+    const result = safeJSONParse<AIResponse>(completion.choices[0].message.content)
     if (!result.summary) {
       throw new ContentError('Failed to analyze content')
     }
@@ -93,12 +102,12 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
   throw new NetworkError('Failed to fetch after retries')
 }
 
-function safeJSONParse(str: string | null | undefined): any {
-  if (!str) return {}
+function safeJSONParse<T>(str: string | null | undefined): T {
+  if (!str) return {} as T
   try {
-    return JSON.parse(str)
+    return JSON.parse(str) as T
   } catch {
-    return {}
+    return {} as T
   }
 }
 
@@ -132,9 +141,8 @@ function extractMainContent(html: string): string {
   
   for (const selector of mainSelectors) {
     const element = doc.querySelector(selector)
-    if (element) {
-      // Clean up the content
-      return cleanContent(element.textContent || '')
+    if (element?.textContent) {
+      return cleanContent(element.textContent)
     }
   }
   
@@ -143,7 +151,7 @@ function extractMainContent(html: string): string {
   if (paragraphs.length > 0) {
     const mainContent = paragraphs
       .filter(p => (p.textContent || '').length > 50) // Filter out short paragraphs
-      .map(p => p.textContent)
+      .map(p => p.textContent || '')
       .join('\n\n')
     
     return cleanContent(mainContent)
@@ -164,7 +172,8 @@ function cleanContent(text: string): string {
 function extractMetadata(doc: Document): { title: string; description: string } {
   const title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
     doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content') ||
-    doc.title
+    doc.title ||
+    ''
 
   const description = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
     doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
@@ -174,7 +183,7 @@ function extractMetadata(doc: Document): { title: string; description: string } 
   return { title, description }
 }
 
-export async function suggestCollections(bookmarks: any[]): Promise<string[]> {
+export async function suggestCollections(bookmarks: Bookmark[]): Promise<string[]> {
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [{
@@ -187,5 +196,6 @@ export async function suggestCollections(bookmarks: any[]): Promise<string[]> {
     temperature: 0.7,
   });
 
-  return response.choices[0].message.content?.split(',').map((tag: string) => tag.trim()) || [];
+  const suggestions = response.choices[0].message.content
+  return suggestions?.split(',').map(tag => tag.trim()).filter(Boolean) || []
 } 

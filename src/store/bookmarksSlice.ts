@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { collection, addDoc, deleteDoc, doc, getDocs, query, where } from 'firebase/firestore'
+import { collection, addDoc, deleteDoc, doc, getDocs, query, where, DocumentData } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import type { Bookmark, BookmarkFormData } from '../types'
 import { analyzeContent } from '../services/ai'
-import { NetworkError, handleApiError } from '../utils/errorHandling'
-import { saveBookmarkOffline, deleteBookmarkOffline, getOfflineBookmarks, syncPendingChanges } from '../services/db'
+import { handleApiError } from '../utils/errorHandling'
+import { saveBookmarkOffline, getOfflineBookmarks, syncPendingChanges } from '../services/db'
 
 interface BookmarksState {
   items: Bookmark[]
@@ -34,7 +34,8 @@ export const fetchBookmarks = createAsyncThunk(
       const querySnapshot = await getDocs(q)
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        dateAdded: new Date((doc.data() as DocumentData).dateAdded)
       })) as Bookmark[]
     } catch (error) {
       return rejectWithValue('Failed to fetch bookmarks')
@@ -51,18 +52,20 @@ export const addBookmark = createAsyncThunk(
         analysis = await analyzeContent(bookmark.url)
       }
 
-      const newBookmark = {
+      const newBookmark: Bookmark = {
         id: '',
         ...bookmark,
         userId,
         dateAdded: new Date(),
+        collections: bookmark.collections || [],
+        tags: bookmark.tags || [],
         analysis: analysis || {
           summary: '',
           keyInsights: [],
           credibilityScore: 0,
           readingTime: 0
         }
-      } as unknown as Bookmark
+      }
 
       if (navigator.onLine) {
         const docRef = await addDoc(collection(db, 'bookmarks'), {
@@ -86,7 +89,9 @@ export const deleteBookmark = createAsyncThunk(
   'bookmarks/deleteBookmark',
   async (id: string, { rejectWithValue }) => {
     try {
-      await deleteDoc(doc(db, 'bookmarks', id))
+      if (!id.startsWith('offline-')) {
+        await deleteDoc(doc(db, 'bookmarks', id))
+      }
       return id
     } catch (error) {
       return rejectWithValue('Failed to delete bookmark')
@@ -110,14 +115,14 @@ export const bookmarksSlice = createSlice({
   name: 'bookmarks',
   initialState,
   reducers: {
-    searchBookmarks: (state, action) => {
+    searchBookmarks: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload
       const query = action.payload.toLowerCase()
       state.filteredItems = state.items.filter(bookmark => 
         bookmark.title.toLowerCase().includes(query) ||
         bookmark.description?.toLowerCase().includes(query) ||
         bookmark.tags.some(tag => tag.toLowerCase().includes(query)) ||
-        bookmark.analysis?.summary.toLowerCase().includes(query)
+        bookmark.analysis?.summary?.toLowerCase().includes(query) || false
       )
     },
     toggleTag: (state, action: PayloadAction<string>) => {
@@ -127,7 +132,6 @@ export const bookmarksSlice = createSlice({
       } else {
         state.selectedTags.push(tag)
       }
-      // Reapply filtering
       state.filteredItems = filterBookmarks(state.items, state.searchQuery, state.selectedTags)
     },
     setSortBy: (state, action: PayloadAction<'date' | 'title' | 'credibility'>) => {
@@ -137,7 +141,6 @@ export const bookmarksSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch bookmarks
       .addCase(fetchBookmarks.pending, (state) => {
         state.loading = true
         state.error = null
@@ -151,7 +154,6 @@ export const bookmarksSlice = createSlice({
         state.loading = false
         state.error = action.payload as string
       })
-      // Add bookmark
       .addCase(addBookmark.pending, (state) => {
         state.loading = true
         state.error = null
@@ -159,12 +161,16 @@ export const bookmarksSlice = createSlice({
       .addCase(addBookmark.fulfilled, (state, action) => {
         state.loading = false
         state.items.push(action.payload)
+        state.filteredItems = filterBookmarks(
+          [...state.items, action.payload],
+          state.searchQuery,
+          state.selectedTags
+        )
       })
       .addCase(addBookmark.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload as string
       })
-      // Delete bookmark
       .addCase(deleteBookmark.pending, (state) => {
         state.loading = true
         state.error = null
@@ -172,6 +178,7 @@ export const bookmarksSlice = createSlice({
       .addCase(deleteBookmark.fulfilled, (state, action) => {
         state.loading = false
         state.items = state.items.filter(item => item.id !== action.payload)
+        state.filteredItems = state.filteredItems.filter(item => item.id !== action.payload)
       })
       .addCase(deleteBookmark.rejected, (state, action) => {
         state.loading = false
@@ -186,7 +193,7 @@ function filterBookmarks(items: Bookmark[], query: string, tags: string[]): Book
       bookmark.title.toLowerCase().includes(query.toLowerCase()) ||
       bookmark.description?.toLowerCase().includes(query.toLowerCase()) ||
       bookmark.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase())) ||
-      bookmark.analysis?.summary.toLowerCase().includes(query.toLowerCase())
+      bookmark.analysis?.summary?.toLowerCase().includes(query.toLowerCase()) || false
 
     const matchesTags = tags.length === 0 || 
       tags.every(tag => bookmark.tags.includes(tag))
@@ -199,7 +206,7 @@ function sortBookmarks(items: Bookmark[], sortBy: 'date' | 'title' | 'credibilit
   return [...items].sort((a, b) => {
     switch (sortBy) {
       case 'date':
-        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+        return b.dateAdded.getTime() - a.dateAdded.getTime()
       case 'title':
         return a.title.localeCompare(b.title)
       case 'credibility':

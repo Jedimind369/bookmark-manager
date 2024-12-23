@@ -6,15 +6,20 @@ import {
   onAuthStateChanged
 } from 'firebase/auth'
 import { auth } from '../config/firebase'
+import type { User } from '../types'
 
 export const signInWithGoogle = createAsyncThunk(
   'auth/signInWithGoogle',
   async () => {
     const provider = new GoogleAuthProvider()
     const result = await signInWithPopup(auth, provider)
+    if (!result.user.email) {
+      throw new Error('Email is required')
+    }
     return {
       id: result.user.uid,
-      email: result.user.email
+      email: result.user.email,
+      uid: result.user.uid
     }
   }
 )
@@ -27,7 +32,7 @@ export const signOut = createAsyncThunk(
 )
 
 interface AuthState {
-  user: null | { id: string; email: string }
+  user: User | null
   loading: boolean
   error: string | null
 }
@@ -41,12 +46,13 @@ const initialState: AuthState = {
 export const initializeAuth = createAsyncThunk(
   'auth/initialize',
   async () => {
-    return new Promise((resolve) => {
+    return new Promise<User | null>((resolve) => {
       onAuthStateChanged(auth, (user) => {
-        if (user) {
+        if (user && user.email) {
           resolve({
             id: user.uid,
-            email: user.email
+            email: user.email,
+            uid: user.uid
           })
         } else {
           resolve(null)
