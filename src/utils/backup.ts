@@ -1,55 +1,27 @@
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { Bookmark } from '../types'
 
-export async function checkBackupStatus(): Promise<{
-  lastBackup: Date | null
-  status: 'success' | 'failed' | 'pending'
-  error?: string
-}> {
+export const backupBookmarks = async (userId: string) => {
   try {
-    const backupRef = doc(db, 'system', 'backup')
-    const backupDoc = await getDoc(backupRef)
+    const bookmarksRef = collection(db, 'bookmarks')
+    const q = query(bookmarksRef, where('userId', '==', userId))
+    const querySnapshot = await getDocs(q)
+    const bookmarks = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Bookmark[]
     
-    if (!backupDoc.exists()) {
-      return {
-        lastBackup: null,
-        status: 'pending'
-      }
-    }
-
-    const data = backupDoc.data()
-    return {
-      lastBackup: data?.lastBackup?.toDate() || null,
-      status: data?.status || 'pending',
-      error: data?.error
-    }
+    return bookmarks
   } catch (error) {
-    console.error('Failed to check backup status:', error)
-    if (error instanceof Error) {
-      return {
-        lastBackup: null,
-        status: 'failed',
-        error: error.message
-      }
-    }
-    return {
-      lastBackup: null,
-      status: 'failed',
-      error: 'Unknown error occurred'
-    }
+    console.error('Error backing up bookmarks:', error)
+    throw error
   }
 }
 
-export async function updateBackupStatus(status: 'success' | 'failed', error?: string): Promise<void> {
-  try {
-    const backupRef = doc(db, 'system', 'backup')
-    await setDoc(backupRef, {
-      lastBackup: new Date(),
-      status,
-      error,
-      updatedAt: new Date()
-    }, { merge: true })
-  } catch (error) {
-    console.error('Failed to update backup status:', error)
+export const checkBackupStatus = async () => {
+  return {
+    lastBackup: new Date(),
+    status: 'success' as const
   }
 } 

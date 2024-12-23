@@ -59,3 +59,23 @@ export const deleteBookmark = async (id: string): Promise<void> => {
 export const upgradeToPremiun = async (): Promise<void> => {
   await api.post('/auth/upgrade');
 };
+
+export const analyzeContent = async (url: string) => {
+  try {
+    const response = await api.post('/analyze', { url });
+    return response.data;
+  } catch (error) {
+    console.error('Error analyzing content:', error);
+    throw error;
+  }
+};
+
+export const syncBookmarks = async (bookmarks: Bookmark[]) => {
+  try {
+    const response = await api.post('/sync', { bookmarks });
+    return response.data;
+  } catch (error) {
+    console.error('Error syncing bookmarks:', error);
+    throw error;
+  }
+};

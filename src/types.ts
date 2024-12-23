@@ -22,9 +22,16 @@ export interface Bookmark {
   collections: string[];
   insights?: string[];
   categories?: string[];
-  personalGrowthNotes?: string;
+  dateAdded: Date;
   userId: string;
-  createdAt: Date;
+  analysis?: {
+    summary?: string;
+    credibilityScore?: number;
+  };
+  metadata?: {
+    visitCount: number;
+  };
+  syncStatus?: 'pending' | 'synced' | 'error';
 }
 
 export interface BookmarkFormData {
