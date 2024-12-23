@@ -6,15 +6,17 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error: Error | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
+    error: null
   };
 
-  public static getDerivedStateFromError(_: Error): State {
-    return { hasError: true };
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -24,9 +26,12 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Oops!</strong>
-          <span className="block sm:inline"> Something went wrong. Please try refreshing the page.</span>
+        <div className="p-4 bg-red-50 text-red-700 rounded">
+          <h2>Something went wrong.</h2>
+          <details className="mt-2">
+            <summary>Error details</summary>
+            <pre className="mt-2 text-sm">{this.state.error?.message}</pre>
+          </details>
         </div>
       );
     }
@@ -34,5 +39,3 @@ class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-export default ErrorBoundary;

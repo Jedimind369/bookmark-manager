@@ -4,21 +4,23 @@ export interface Bookmark {
   id: string;
   url: string;
   title: string;
-  description: string;
-  categories: string[];
+  description?: string;
   tags: string[];
   dateAdded: Date;
-  insights: string[];
-  personalGrowthNotes: string;
-  relatedConcepts: string[];
+  userId: string;
+  analysis?: {
+    summary: string;
+    keyInsights: string[];
+    credibilityScore: number;
+    readingTime: number;
+  };
 }
 
 export interface BookmarkFormData {
   url: string;
   title: string;
   description: string;
-  insights: string[];
-  personalGrowthNotes: string;
+  tags: string[];
 }
 
 // ... (keep the rest of the existing types)

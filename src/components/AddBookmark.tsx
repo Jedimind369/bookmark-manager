@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { addBookmark } from '../store/bookmarksSlice'
 import { RootState } from '../store'
+import { analyzeContent } from '../services/ai'
 import type { BookmarkFormData } from '../types'
 
 export function AddBookmark() {
   const dispatch = useDispatch()
   const { user } = useSelector((state: RootState) => state.auth)
   const [isOpen, setIsOpen] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [formData, setFormData] = useState<BookmarkFormData>({
     url: '',
     title: '',
@@ -15,10 +17,44 @@ export function AddBookmark() {
     tags: []
   })
 
+  const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value
+    setFormData({...formData, url})
+    
+    if (url) {
+      setIsAnalyzing(true)
+      try {
+        const analysis = await analyzeContent(url)
+        setFormData(prev => ({
+          ...prev,
+          title: prev.title || url,
+          description: analysis.summary || '',
+          tags: analysis.suggestedTags || []
+        }))
+      } catch (error) {
+        console.error('Failed to analyze URL:', error)
+      } finally {
+        setIsAnalyzing(false)
+      }
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (user) {
-      dispatch(addBookmark({ bookmark: formData, userId: user.id }))
+      dispatch(addBookmark({ 
+        bookmark: {
+          ...formData,
+          collections: [],
+          analysis: {
+            summary: formData.description || '',
+            keyInsights: [],
+            credibilityScore: 0,
+            readingTime: 0
+          }
+        }, 
+        userId: user.id 
+      }))
       setFormData({ url: '', title: '', description: '', tags: [] })
       setIsOpen(false)
     }
@@ -39,14 +75,20 @@ export function AddBookmark() {
             <h2 className="text-xl font-bold mb-4">Add New Bookmark</h2>
             
             <div className="space-y-4">
-              <input
-                type="url"
-                placeholder="URL"
-                required
-                value={formData.url}
-                onChange={e => setFormData({...formData, url: e.target.value})}
-                className="w-full px-3 py-2 border rounded"
-              />
+              <div>
+                <input
+                  type="url"
+                  placeholder="URL"
+                  required
+                  value={formData.url}
+                  onChange={handleUrlChange}
+                  className="w-full px-3 py-2 border rounded"
+                  disabled={isAnalyzing}
+                />
+                {isAnalyzing && (
+                  <p className="text-sm text-gray-500 mt-1">Analyzing content...</p>
+                )}
+              </div>
               
               <input
                 type="text"
