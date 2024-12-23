@@ -59,7 +59,7 @@ async function getDB(): Promise<IDBPDatabase<BookmarkDB>> {
       if (oldVersion < 2) {
         const tx = db.transaction('bookmarks', 'readwrite')
         const store = tx.objectStore('bookmarks')
-        store.openCursor().then(function addStatus(cursor) {
+        store.openCursor().then(function addStatus(cursor): Promise<void> | void {
           if (!cursor) return
           const bookmark = cursor.value
           if (!bookmark.syncStatus) {

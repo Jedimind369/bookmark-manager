@@ -3,6 +3,14 @@
  * @description Handles AI interactions and logging
  */
 
+import OpenAI from 'openai';
+import { NetworkError, ContentError } from '../utils/errorHandling';
+
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true
+});
+
 export interface AIInteraction {
   prompt: string;
   result: string;
@@ -24,9 +32,7 @@ class AIService {
   private interactions: AIInteraction[] = [];
   private readonly MAX_LOG_SIZE = 1000;
 
-  private constructor() {
-    // Private constructor for singleton pattern
-  }
+  private constructor() {}
 
   public static getInstance(): AIService {
     if (!AIService.instance) {
@@ -35,63 +41,22 @@ class AIService {
     return AIService.instance;
   }
 
-  /**
-   * Logs an AI interaction
-   * @param {AIInteraction} interaction - The interaction to log
-   */
   public logInteraction(interaction: AIInteraction): void {
     this.interactions.push({
       ...interaction,
       timestamp: new Date()
     });
 
-    // Trim logs if they exceed max size
     if (this.interactions.length > this.MAX_LOG_SIZE) {
       this.interactions = this.interactions.slice(-this.MAX_LOG_SIZE);
     }
 
-    // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `[AI Log] ${interaction.component}: ${interaction.prompt.slice(0, 100)}...`
-      );
+      console.log(`[AI Log] ${interaction.component}: ${interaction.prompt.slice(0, 100)}...`);
     }
   }
 
-  /**
-   * Gets recent interactions for a component
-   * @param {string} component - The component name
-   * @param {number} limit - Maximum number of interactions to return
-   */
-  public getRecentInteractions(component: string, limit = 10): AIInteraction[] {
-    return this.interactions
-      .filter(i => i.component === component)
-      .slice(-limit);
-  }
-
-  /**
-   * Clears all logged interactions
-   */
-  public clearInteractions(): void {
-    this.interactions = [];
-  }
-
-  /**
-   * Exports interactions to JSON
-   */
-  public exportInteractions(): string {
-    return JSON.stringify(this.interactions, null, 2);
-  }
-
-  /**
-   * Analyzes content using AI
-   * @param {string} url - The URL to analyze
-   * @param {string} content - The content to analyze
-   */
-  public async analyzeContent(
-    url: string,
-    content: string
-  ): Promise<AIAnalysisResult> {
+  public async analyzeContent(url: string, content: string): Promise<AIAnalysisResult> {
     const interaction: AIInteraction = {
       prompt: `Analyze content from ${url}`,
       result: '',
@@ -101,13 +66,32 @@ class AIService {
     };
 
     try {
-      // TODO: Implement actual OpenAI integration
-      const result: AIAnalysisResult = {
-        summary: 'Content summary placeholder',
-        tags: ['tag1', 'tag2'],
-        category: 'uncategorized',
-        sentiment: 'neutral'
-      };
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: `Analyze the webpage content and return a JSON object with:
+              {
+                "summary": "Brief summary under 200 chars",
+                "tags": ["relevant", "tags"],
+                "category": "main category",
+                "sentiment": "positive" | "neutral" | "negative"
+              }`
+          },
+          {
+            role: "user",
+            content: `URL: ${url}\n\nContent: ${content.slice(0, 4000)}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      });
+
+      const result = this.safeJSONParse<AIAnalysisResult>(completion.choices[0].message.content);
+      if (!result.summary) {
+        throw new ContentError('Failed to analyze content');
+      }
 
       interaction.result = JSON.stringify(result);
       this.logInteraction(interaction);
@@ -116,8 +100,33 @@ class AIService {
     } catch (error) {
       interaction.result = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
       this.logInteraction(interaction);
-      throw error;
+      throw error instanceof NetworkError || error instanceof ContentError
+        ? error
+        : new Error('Failed to analyze content');
     }
+  }
+
+  private safeJSONParse<T>(str: string | null | undefined): T {
+    if (!str) return {} as T;
+    try {
+      return JSON.parse(str) as T;
+    } catch {
+      return {} as T;
+    }
+  }
+
+  public getRecentInteractions(component: string, limit = 10): AIInteraction[] {
+    return this.interactions
+      .filter(i => i.component === component)
+      .slice(-limit);
+  }
+
+  public clearInteractions(): void {
+    this.interactions = [];
+  }
+
+  public exportInteractions(): string {
+    return JSON.stringify(this.interactions, null, 2);
   }
 }
 
