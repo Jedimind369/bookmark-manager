@@ -11,26 +11,23 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     permissions:
-      contents: write
-      issues: write
-    
+      contents: read
+      
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       
-      - name: Create Backup Directory
+      - name: Create Backup
         run: |
-          mkdir -p backups
-          cp -r src backups/
-          cp -r public backups/
-          cp package.json backups/
+          timestamp=$(date +%Y%m%d_%H%M%S)
+          mkdir -p "backup_${timestamp}"
+          cp -r src/ "backup_${timestamp}/"
+          cp -r public/ "backup_${timestamp}/"
+          cp package.json "backup_${timestamp}/"
           
-      - name: Upload Backup
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
-          name: backup-${{ github.sha }}
-          path: backups/
-          retention-days: 30
+          name: backup
+          path: backup_*
+          retention-days: 7
