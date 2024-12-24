@@ -1,6 +1,11 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../config/firebase';
-import { User } from 'firebase/auth';
+
+interface User {
+  id: string;
+  name: string;
+  profileImage?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -14,12 +19,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/__replauthuser');
+        const userData = await response.json();
+        setUser(userData);
+      } catch (error) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   return (
@@ -35,4 +47,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};
