@@ -1,66 +1,66 @@
 
 import React, { useState, useEffect } from 'react';
-import { LoginButton } from './components/atoms/LoginButton';
-import { BookmarkForm } from './components/BookmarkForm';
-import BookmarkList from './components/BookmarkList';
-import { bookmarkService } from './services/bookmarkService';
-import type { Bookmark } from './types';
+import './index.css';
 
-const App = () => {
+function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-
-  useEffect(() => {
-    // Add Replit auth script
-    const script = document.createElement('script');
-    script.src = 'https://auth.util.repl.co/script.js';
-    script.setAttribute('data-replit-user-id', 'true');
-    document.head.appendChild(script);
-
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/__replauthuser');
-        if (response.ok) {
-          setIsLoggedIn(true);
-          loadBookmarks();
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      }
-    };
-    
-    checkAuth();
-  }, []);
-
-  const loadBookmarks = async () => {
-    try {
-      const data = await bookmarkService.getBookmarks();
-      setBookmarks(data);
-    } catch (error) {
-      console.error('Failed to load bookmarks:', error);
-    }
-  };
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="p-8 bg-white rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold mb-4">Welcome to Bookmark Manager</h1>
-          <LoginButton />
-        </div>
-      </div>
-    );
-  }
+  const [bookmarks, setBookmarks] = useState([]);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Bookmark Manager</h1>
-        <BookmarkForm />
-        <BookmarkList bookmarks={bookmarks} />
-      </div>
+    <div className="min-h-screen bg-gray-100">
+      {!isLoggedIn ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-white p-8 rounded-lg shadow-md w-96">
+            <h1 className="text-2xl font-bold mb-6 text-center">Bookmark Manager</h1>
+            <button 
+              onClick={() => setIsLoggedIn(true)}
+              className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+            >
+              Login with Replit
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="container mx-auto p-6">
+          <header className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">My Bookmarks</h1>
+            <button 
+              onClick={() => setIsLoggedIn(false)}
+              className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition-colors"
+            >
+              Sign Out
+            </button>
+          </header>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <form className="mb-6">
+              <input
+                type="text"
+                placeholder="Enter bookmark URL"
+                className="w-full p-2 border rounded mb-2"
+              />
+              <button 
+                type="submit"
+                className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition-colors"
+              >
+                Add Bookmark
+              </button>
+            </form>
+            <div className="space-y-4">
+              {bookmarks.length === 0 ? (
+                <p className="text-gray-500 text-center">No bookmarks yet. Add your first one!</p>
+              ) : (
+                bookmarks.map((bookmark, index) => (
+                  <div key={index} className="border-b pb-4">
+                    {/* Bookmark items will go here */}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default App;
