@@ -1,3 +1,4 @@
+
 name: Backup
 
 on:
@@ -10,6 +11,7 @@ on:
 jobs:
   test-firebase:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Test Firebase Credentials
         env:
@@ -17,182 +19,49 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
           echo "Testing Firebase credentials..."
-          
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
             echo "::error::FIREBASE_SERVICE_ACCOUNT is not set"
             exit 1
           fi
-          
           if [ -z "$FIREBASE_PROJECT_ID" ]; then
             echo "::error::FIREBASE_PROJECT_ID secret is not set"
             exit 1
           fi
-          
-          echo "Project ID: $FIREBASE_PROJECT_ID"
-          echo "Service account exists: ✓"
-          
-          # Test JSON parsing
           echo "$FIREBASE_SERVICE_ACCOUNT" > test-credentials.json
           if ! jq empty test-credentials.json 2>/dev/null; then
             echo "::error::FIREBASE_SERVICE_ACCOUNT is not valid JSON"
             rm test-credentials.json
             exit 1
           fi
-          
-          # Verify required fields
-          if ! jq -e '.project_id' test-credentials.json >/dev/null; then
-            echo "::error::Service account missing project_id"
-            rm test-credentials.json
-            exit 1
-          fi
-          
-          if ! jq -e '.private_key' test-credentials.json >/dev/null; then
-            echo "::error::Service account missing private_key"
-            rm test-credentials.json
-            exit 1
-          fi
-          
-          if ! jq -e '.client_email' test-credentials.json >/dev/null; then
-            echo "::error::Service account missing client_email"
-            rm test-credentials.json
-            exit 1
-          fi
-          
-          echo "Service account JSON is valid ✓"
           rm test-credentials.json
-          
-          echo "All credential tests passed! ✓"
 
   backup:
     needs: test-firebase
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      contents: read
+      contents: write
       issues: write
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: Install Dependencies
-        run: |
-          npm ci
-          npm install -g firebase-tools@latest
-
-      - name: Setup Firebase
+      
+      - run: npm ci
+      
+      - name: Perform Backup
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-        run: |
-          echo "Creating service account file..."
-          echo "$FIREBASE_SERVICE_ACCOUNT" > firebase-service-account.json
-          
-          echo "Authenticating with Firebase..."
-          firebase login:ci --token "$(echo $FIREBASE_SERVICE_ACCOUNT | jq -r .private_key)"
-          firebase use "$FIREBASE_PROJECT_ID"
-
-      - name: Export Database
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-        run: |
-          echo "Creating backup directory..."
-          mkdir -p backup
-          
-          echo "Exporting Firestore data..."
-          firebase firestore:export backup/ \
-            --project "$FIREBASE_PROJECT_ID" \
-            --token "$FIREBASE_TOKEN"
-
-      - name: Create Backup
-        run: |
-          echo "Creating backup directories..."
-          mkdir -p backups
-          
-          echo "Setting timestamp..."
-          timestamp=$(date +%Y%m%d-%H%M%S)
-          
-          echo "Creating source code backup..."
-          git archive --format=tar.gz -o "backups/source-$timestamp.tar.gz" HEAD
-          
-          echo "Copying database backup..."
-          if [ -d backup ]; then
-            cp -r backup/* "backups/firestore-$timestamp/"
-            echo "Database backup copied successfully"
-          else
-            echo "::warning::No database backup found"
-          fi
-          
-          echo "Creating backup info file..."
-          {
-            echo "Backup created at: $(date)"
-            echo "Commit: ${{ github.sha }}"
-            echo "Branch: ${{ github.ref_name }}"
-            echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          } > "backups/info-$timestamp.txt"
-
+        run: bash ./scripts/backup.sh
+        
       - name: Upload Backup
         uses: actions/upload-artifact@v3
         with:
           name: backup-${{ github.sha }}
           path: backups/
           retention-days: 30
-
-      - name: Update Backup Status
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > last_successful_backup.txt
-            echo "Backup completed successfully"
-          else
-            echo "::error::Backup failed"
-          fi
-
-      - name: Create Status Issue
-        if: failure()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const title = '🔴 Backup Failed';
-            const body = `
-            # Backup Failed
-            
-            - **Workflow Run**: [View Run](${context.payload.repository.html_url}/actions/runs/${context.runId})
-            - **Commit**: [${context.sha.slice(0, 7)}](${context.payload.repository.html_url}/commit/${context.sha})
-            - **Branch**: ${context.ref}
-            - **Timestamp**: ${new Date().toISOString()}
-            
-            ## Error Details
-            Please check the workflow logs for more details.
-            
-            ## Next Steps
-            1. Verify that the Firebase service account credentials are correctly set up
-            2. Ensure the Firebase project ID is correct
-            3. Check if the Firebase project has the necessary permissions
-            `;
-            
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['backup', 'bug']
-            });
-
-      - name: Cleanup
-        if: always()
-        run: |
-          echo "Cleaning up sensitive files..."
-          rm -f firebase-service-account.json
-          rm -rf backup/
-          rm -rf backups/
