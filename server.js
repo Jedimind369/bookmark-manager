@@ -1,25 +1,38 @@
-import express from 'express';
-import cors from 'cors';
+
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const bookmarkRoutes = require('./server/routes/bookmarks');
+const authRoutes = require('./server/routes/auth');
+const aiRoutes = require('./server/routes/ai');
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT || 3000;
 
-// Enable CORS for all routes
 app.use(cors());
+app.use(express.json());
 
-// Basic test endpoint
-app.get('/', (req, res) => {
-  console.log('Received request:', req.method, req.url);
-  res.send('Server is working!');
-});
+// API routes
+app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/ai', aiRoutes);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Serve static files
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle SPA routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Test server running at:`);
-  console.log(`- Local: http://localhost:${port}`);
-  console.log(`- Network: http://0.0.0.0:${port}`);
-}); 
+  console.log(`Server running on port ${port}`);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+});
