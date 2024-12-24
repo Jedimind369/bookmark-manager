@@ -1,27 +1,13 @@
 
-name: Backup
+#!/bin/bash
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+# Simple backup script
+timestamp=$(date +%Y%m%d_%H%M%S)
+backup_dir="backups/$timestamp"
 
-jobs:
-  backup:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Create Backup
-        run: |
-          zip -r backup.zip src/ public/ package.json README.md tsconfig.json
-          
-      - uses: actions/upload-artifact@v3
-        with:
-          name: backup
-          path: backup.zip
-          retention-days: 7
+mkdir -p "$backup_dir"
+cp -r src/ "$backup_dir/"
+cp -r public/ "$backup_dir/"
+cp package.json "$backup_dir/"
+
+echo "Backup created in $backup_dir"
