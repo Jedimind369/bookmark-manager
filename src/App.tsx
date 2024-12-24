@@ -11,6 +11,12 @@ const App = () => {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
   useEffect(() => {
+    // Add Replit auth script
+    const script = document.createElement('script');
+    script.src = 'https://auth.util.repl.co/script.js';
+    script.setAttribute('data-replit-user-id', 'true');
+    document.head.appendChild(script);
+
     const checkAuth = async () => {
       try {
         const response = await fetch('/__replauthuser');
@@ -22,6 +28,7 @@ const App = () => {
         console.error('Auth check failed:', error);
       }
     };
+    
     checkAuth();
   }, []);
 
