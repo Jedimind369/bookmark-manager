@@ -22,3 +22,7 @@ syntax = "javascript"
 
 [languages.javascript.languageServer]
 start = [ "typescript-language-server", "--stdio" ]
+
+[[ports]]
+localPort = 5173
+externalPort = 80
