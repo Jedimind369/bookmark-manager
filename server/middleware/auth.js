@@ -1,18 +1,17 @@
 
-const auth = async (req, res, next) => {
-  try {
-    const userId = req.headers['x-replit-user-id'];
-    const userName = req.headers['x-replit-user-name'];
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+const auth = (req, res, next) => {
+  const userId = req.headers['x-replit-user-id'];
+  const userName = req.headers['x-replit-user-name'];
 
-    req.user = { id: userId, name: userName };
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Authentication failed' });
+  if (!userId && req.path !== '/' && !req.path.includes('/__repl')) {
+    return res.status(401).json({ error: 'Authentication required' });
   }
+
+  if (userId) {
+    req.user = { id: userId, name: userName };
+  }
+  
+  next();
 };
 
 module.exports = auth;
