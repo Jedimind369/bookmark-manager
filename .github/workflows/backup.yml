@@ -18,15 +18,10 @@ jobs:
       
       - name: Create Backup
         run: |
-          zip -r backup.zip \
-            src/ \
-            public/ \
-            package.json \
-            README.md \
-            tsconfig.json
+          zip -r backup.zip src/ public/ package.json README.md tsconfig.json
           
       - uses: actions/upload-artifact@v3
         with:
-          name: backup-$(date +%Y%m%d)
+          name: backup
           path: backup.zip
           retention-days: 7
