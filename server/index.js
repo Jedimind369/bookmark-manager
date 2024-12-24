@@ -15,7 +15,7 @@ app.use(express.json());
 app.use('/api/bookmarks', auth, require('./routes/bookmarks'));
 app.use('/api/ai', auth, require('./routes/ai'));
 
-const port = 8080;
+const port = process.env.PORT || 8080;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);
 });
