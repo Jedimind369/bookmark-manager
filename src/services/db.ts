@@ -1,9 +1,8 @@
 
-import { Bookmark } from '../types';
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: import.meta.env.VITE_DATABASE_URL,
   max: 10
 });
 
