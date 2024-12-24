@@ -1,26 +1,22 @@
+
 import React from 'react';
 import styled from 'styled-components';
-import { Google as GoogleIcon } from '@mui/icons-material';
-import { authService } from '../../services/firebase/authService';
 import { Button } from './Button';
+import { authService } from '../../services/authService';
 
 const StyledButton = styled(Button)`
-  gap: ${({ theme }) => theme.spacing.small};
+  padding: 12px 24px;
+  font-size: 16px;
 `;
 
 export const LoginButton: React.FC = () => {
-  const handleLogin = async () => {
-    try {
-      await authService.signIn();
-    } catch (error) {
-      console.error('Failed to sign in:', error);
-    }
+  const handleLogin = () => {
+    authService.login();
   };
 
   return (
     <StyledButton onClick={handleLogin} variant="primary" size="large">
-      <GoogleIcon />
-      Sign in with Google
+      Sign in with Replit
     </StyledButton>
   );
-}; 
+};
