@@ -229,12 +229,13 @@ export const bookmarksSlice = createSlice({
         }
       })
       .addCase(syncBookmarks.rejected, (state, action) => {
-        state.isSyncing = false
+        state.isSyncing = false;
         state.error = action.payload instanceof ApiError 
           ? action.payload.message 
           : typeof action.payload === 'string' 
             ? action.payload 
-            : 'An unknown error occurred'
+            : 'An unknown error occurred';
+        state.lastSyncTime = null;
       })
   }
 })
@@ -275,4 +276,4 @@ function sortBookmarks(items: Bookmark[], sortBy: 'date' | 'title' | 'credibilit
 }
 
 export const { searchBookmarks, toggleTag, setSortBy } = bookmarksSlice.actions
-export default bookmarksSlice.reducer 
+export default bookmarksSlice.reducer

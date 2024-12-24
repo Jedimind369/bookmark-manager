@@ -43,44 +43,49 @@ let dbInstance: IDBPDatabase<BookmarkDB> | null = null
 async function getDB(): Promise<IDBPDatabase<BookmarkDB>> {
   if (dbInstance) return dbInstance
 
-  dbInstance = await openDB<BookmarkDB>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        const bookmarkStore = db.createObjectStore('bookmarks', { keyPath: 'id' })
-        bookmarkStore.createIndex('by-date', 'dateAdded')
-        bookmarkStore.createIndex('by-tag', 'tags', { multiEntry: true })
-        bookmarkStore.createIndex('by-status', 'syncStatus')
+  try {
+    dbInstance = await openDB<BookmarkDB>(DB_NAME, DB_VERSION, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const bookmarkStore = db.createObjectStore('bookmarks', { keyPath: 'id' })
+          bookmarkStore.createIndex('by-date', 'dateAdded')
+          bookmarkStore.createIndex('by-tag', 'tags', { multiEntry: true })
+          bookmarkStore.createIndex('by-status', 'syncStatus')
+          
+          const syncStore = db.createObjectStore('pendingSync', { keyPath: 'id', autoIncrement: true })
+          syncStore.createIndex('by-timestamp', 'timestamp')
+          syncStore.createIndex('by-type', 'type')
+        }
         
-        const syncStore = db.createObjectStore('pendingSync', { keyPath: 'id', autoIncrement: true })
-        syncStore.createIndex('by-timestamp', 'timestamp')
-        syncStore.createIndex('by-type', 'type')
+        if (oldVersion < 2) {
+          const tx = db.transaction('bookmarks', 'readwrite')
+          const store = tx.objectStore('bookmarks')
+          store.openCursor().then(function addStatus(cursor) {
+            if (!cursor) return
+            const bookmark = cursor.value
+            if (!bookmark.syncStatus) {
+              bookmark.syncStatus = 'synced'
+              cursor.update(bookmark)
+            }
+            return cursor.continue().then(addStatus)
+          })
+        }
+      },
+      blocked() {
+        console.warn('Database upgrade blocked. Please close other tabs.')
+      },
+      blocking() {
+        dbInstance?.close()
+        dbInstance = null
+      },
+      terminated() {
+        dbInstance = null
       }
-      
-      if (oldVersion < 2) {
-        const tx = db.transaction('bookmarks', 'readwrite')
-        const store = tx.objectStore('bookmarks')
-        store.openCursor().then(function addStatus(cursor) {
-          if (!cursor) return
-          const bookmark = cursor.value
-          if (!bookmark.syncStatus) {
-            bookmark.syncStatus = 'synced'
-            cursor.update(bookmark)
-          }
-          return cursor.continue().then(addStatus)
-        })
-      }
-    },
-    blocked() {
-      console.warn('Database upgrade blocked. Please close other tabs.')
-    },
-    blocking() {
-      dbInstance?.close()
-      dbInstance = null
-    },
-    terminated() {
-      dbInstance = null
-    }
-  })
+    })
+  } catch (error) {
+    console.error("Error opening database:", error);
+    throw new ApiError("Failed to open database", "DATABASE_OPEN_ERROR");
+  }
 
   return dbInstance
 }
@@ -303,4 +308,4 @@ if (typeof window !== 'undefined') {
       dbInstance = null
     }
   })
-} 
+}

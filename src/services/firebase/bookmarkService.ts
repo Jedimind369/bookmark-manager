@@ -4,13 +4,22 @@ import { Bookmark } from '../../types/bookmark';
 
 export const bookmarkService = {
   // Get user's bookmarks
-  getBookmarks: async (userId: string) => {
-    const q = query(
-      collection(db, 'bookmarks'),
-      where('userId', '==', userId)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bookmark));
+  getBookmarks: async (userId: string): Promise<Bookmark[]> => {
+    try {
+      const q = query(
+        collection(db, 'bookmarks'),
+        where('userId', '==', userId)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        dateAdded: new Date((doc.data() as DocumentData).dateAdded)
+      } as Bookmark));
+    } catch (error) {
+      console.error('Error fetching bookmarks:', error);
+      throw error;
+    }
   },
 
   // Add new bookmark
