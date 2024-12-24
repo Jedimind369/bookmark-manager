@@ -1,29 +1,35 @@
-import { useState, useMemo } from 'react';
-import { Bookmark } from '../types/bookmark';
+import { useState, useEffect } from 'react';
+import { Bookmark } from '../types';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
-type SortOption = 'date' | 'title' | 'visits';
+export const useBookmarks = () => {
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export const useBookmarks = (bookmarks: Bookmark[]) => {
-  const [sortBy, setSortBy] = useState<SortOption>('date');
-
-  const sortedBookmarks = useMemo(() => {
-    return [...bookmarks].sort((a, b) => {
-      switch (sortBy) {
-        case 'date':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'visits':
-          return (b.metadata?.visitCount || 0) - (a.metadata?.visitCount || 0);
-        default:
-          return 0;
+  useEffect(() => {
+    const q = query(collection(db, 'bookmarks'));
+    
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const bookmarkData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Bookmark[];
+        
+        setBookmarks(bookmarkData);
+        setLoading(false);
+      },
+      (err) => {
+        setError('Failed to fetch bookmarks');
+        setLoading(false);
+        console.error('Firestore error:', err);
       }
-    });
-  }, [bookmarks, sortBy]);
+    );
 
-  return {
-    sortBy,
-    setSortBy,
-    sortedBookmarks
-  };
+    return () => unsubscribe();
+  }, []);
+
+  return { bookmarks, loading, error };
 }; 

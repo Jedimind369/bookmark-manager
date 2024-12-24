@@ -12,11 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mui/icons-material": "^6.2.1",
-    "@mui/material": "^6.2.1",
     "@reduxjs/toolkit": "^2.0.1",
-    "@types/axios": "^0.9.36",
-    "@types/react-window": "^1.8.8",
     "axios": "^1.7.9",
     "chart.js": "^4.4.7",
     "firebase": "^10.7.1",
@@ -29,8 +25,7 @@
     "react-redux": "^9.0.4",
     "react-router-dom": "^6.21.1",
     "react-virtualized-auto-sizer": "^1.0.25",
-    "react-window": "^1.8.11",
-    "styled-components": "^6.1.6"
+    "react-window": "^1.8.11"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
@@ -45,6 +40,9 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.3.3",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
   }
 }

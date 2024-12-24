@@ -1,38 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider,
-  signOut as firebaseSignOut,
-  onAuthStateChanged
-} from 'firebase/auth'
-import { auth } from '../config/firebase'
-import type { User } from '../types'
-
-export const signInWithGoogle = createAsyncThunk(
-  'auth/signInWithGoogle',
-  async () => {
-    const provider = new GoogleAuthProvider()
-    const result = await signInWithPopup(auth, provider)
-    if (!result.user.email) {
-      throw new Error('Email is required')
-    }
-    return {
-      id: result.user.uid,
-      email: result.user.email,
-      uid: result.user.uid
-    }
-  }
-)
-
-export const signOut = createAsyncThunk(
-  'auth/signOut',
-  async () => {
-    await firebaseSignOut(auth)
-  }
-)
+import { auth } from '../firebase'
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
 interface AuthState {
-  user: User | null
+  user: any | null
   loading: boolean
   error: string | null
 }
@@ -43,46 +14,42 @@ const initialState: AuthState = {
   error: null
 }
 
-export const initializeAuth = createAsyncThunk(
-  'auth/initialize',
+export const signInWithGoogle = createAsyncThunk(
+  'auth/signInWithGoogle',
   async () => {
-    return new Promise<User | null>((resolve) => {
-      onAuthStateChanged(auth, (user) => {
-        if (user && user.email) {
-          resolve({
-            id: user.uid,
-            email: user.email,
-            uid: user.uid
-          })
-        } else {
-          resolve(null)
-        }
-      })
-    })
+    const provider = new GoogleAuthProvider()
+    const result = await signInWithPopup(auth, provider)
+    return result.user
   }
 )
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {},
+  reducers: {
+    setUser: (state, action) => {
+      state.user = action.payload
+    },
+    clearError: (state) => {
+      state.error = null
+    }
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(initializeAuth.pending, (state) => {
+      .addCase(signInWithGoogle.pending, (state) => {
         state.loading = true
-      })
-      .addCase(initializeAuth.fulfilled, (state, action) => {
-        state.loading = false
-        state.user = action.payload
+        state.error = null
       })
       .addCase(signInWithGoogle.fulfilled, (state, action) => {
-        state.user = action.payload
         state.loading = false
+        state.user = action.payload
       })
-      .addCase(signOut.fulfilled, (state) => {
-        state.user = null
+      .addCase(signInWithGoogle.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.error.message || 'Failed to sign in'
       })
   }
 })
 
+export const { setUser, clearError } = authSlice.actions
 export default authSlice.reducer 
