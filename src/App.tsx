@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Auth } from './components/Auth';
 import { BookmarkForm } from './components/BookmarkForm';
