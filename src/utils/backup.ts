@@ -1,3 +1,4 @@
+
 import { getFirestore, collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { Bookmark } from '../types'
@@ -9,8 +10,13 @@ export const backupBookmarks = async (userId: string) => {
     const querySnapshot = await getDocs(q)
     const bookmarks = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
+      backupDate: new Date().toISOString()
     })) as Bookmark[]
+    
+    // Store backup in localStorage for quick access
+    localStorage.setItem('bookmarks_backup', JSON.stringify(bookmarks))
+    localStorage.setItem('last_backup_date', new Date().toISOString())
     
     return bookmarks
   } catch (error) {
@@ -20,8 +26,9 @@ export const backupBookmarks = async (userId: string) => {
 }
 
 export const checkBackupStatus = async () => {
+  const lastBackup = localStorage.getItem('last_backup_date')
   return {
-    lastBackup: new Date(),
-    status: 'success' as const
+    lastBackup: lastBackup ? new Date(lastBackup) : null,
+    status: lastBackup ? 'success' as const : 'pending' as const
   }
-} 
+}
