@@ -1,11 +1,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-
-interface User {
-  id: string;
-  name: string;
-  profileImage?: string;
-}
+import { authService } from '../services/authService';
+import { User } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -22,15 +18,19 @@ const initialState: AuthState = {
 export const initializeAuth = createAsyncThunk(
   'auth/initialize',
   async () => {
-    const response = await fetch('/__replauthuser');
-    return response.json();
+    const user = await authService.getCurrentUser();
+    return user;
   }
 );
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {},
+  reducers: {
+    logout: (state) => {
+      state.user = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(initializeAuth.pending, (state) => {
@@ -47,4 +47,5 @@ const authSlice = createSlice({
   }
 });
 
+export const { logout } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,15 +1,30 @@
 
+import { User } from '../types';
+
 export const authService = {
-  signIn: async () => {
-    window.location.href = '/__repl/auth/login';
+  getCurrentUser: async (): Promise<User | null> => {
+    try {
+      const response = await fetch('/__replauthuser');
+      const data = await response.json();
+      if (!data.id) return null;
+      
+      return {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        avatar: data.profileImage
+      };
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   },
 
-  signOut: async () => {
-    window.location.href = '/__repl/auth/logout';
+  login: async () => {
+    window.location.href = '/__replauthlogin';
   },
 
-  getCurrentUser: async () => {
-    const response = await fetch('/__replauthuser');
-    return response.json();
+  logout: async () => {
+    window.location.href = '/__replauthlogout';
   }
 };
