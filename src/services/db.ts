@@ -5,13 +5,14 @@ const pool = new Pool({
   connectionString: process.env.VITE_DATABASE_URL
 });
 
-export const db = {
-  query: (text: string, params?: any[]) => pool.query(text, params),
-  
-  getClient: async () => {
-    const client = await pool.connect();
-    return client;
+export const query = async (text: string, params?: any[]) => {
+  try {
+    const result = await pool.query(text, params);
+    return result;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw error;
   }
 };
 
-export default db;
+export const getClient = () => pool.connect();
