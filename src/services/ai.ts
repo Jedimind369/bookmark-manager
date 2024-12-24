@@ -206,4 +206,4 @@ export async function suggestCollections(bookmarks: Bookmark[]): Promise<string[
 
   const suggestions = response.choices[0].message.content
   return suggestions?.split(',').map(tag => tag.trim()).filter(Boolean) || []
-} 
+}

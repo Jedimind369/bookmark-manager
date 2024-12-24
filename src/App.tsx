@@ -7,6 +7,7 @@ import { initializeAuth } from './store/authSlice'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { syncBookmarks } from './store/bookmarksSlice'
 import { AppDispatch } from './store'
+import Test from './components/Test';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>()
