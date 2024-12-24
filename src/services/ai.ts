@@ -111,7 +111,15 @@ function safeJSONParse<T>(str: string | null | undefined): T {
   }
 }
 
+interface ContentElement {
+  textContent: string | null;
+  remove: () => void;
+}
+
 function extractMainContent(html: string): string {
+  if (!html) {
+    return '';
+  }
   const parser = new DOMParser()
   const doc = parser.parseFromString(html, 'text/html')
   

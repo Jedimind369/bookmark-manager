@@ -56,8 +56,13 @@ export const deleteBookmark = async (id: string): Promise<void> => {
   await api.delete(`/bookmarks/${id}`);
 };
 
-export const upgradeToPremiun = async (): Promise<void> => {
-  await api.post('/auth/upgrade');
+export const upgradeToPremium = async (): Promise<void> => {
+  try {
+    await api.post('/auth/upgrade');
+  } catch (error) {
+    console.error('Error upgrading account:', error);
+    throw error;
+  }
 };
 
 export const analyzeContent = async (url: string) => {

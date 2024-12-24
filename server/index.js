@@ -69,8 +69,21 @@ connectToMongoDB();
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Global error handler:', err.stack);
-  res.status(500).json({ status: 'ERROR', message: 'Internal server error' });
+  console.error('Global error handler:', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method
+  });
+  
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal server error';
+  
+  res.status(statusCode).json({ 
+    status: 'ERROR', 
+    message,
+    path: req.path
+  });
 });
 
 // Handle unhandled promise rejections
