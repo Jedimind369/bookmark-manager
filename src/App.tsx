@@ -7,8 +7,6 @@ import { initializeAuth } from './store/authSlice'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { syncBookmarks } from './store/bookmarksSlice'
 import { AppDispatch } from './store'
-import Test from './components/Test';
-
 function App() {
   const dispatch = useDispatch<AppDispatch>()
 
@@ -31,7 +29,6 @@ function App() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           <Header />
           <main className="container mx-auto px-4 py-8">
-            <Test />
             <BookmarkList />
           </main>
         </div>
