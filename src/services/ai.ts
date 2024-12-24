@@ -1,6 +1,10 @@
 
 import OpenAI from 'openai';
 
+if (!import.meta.env.VITE_OPENAI_API_KEY) {
+  console.warn('OpenAI API key not found. AI features will be disabled.');
+}
+
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true
