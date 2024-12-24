@@ -77,6 +77,30 @@ function App() {
         <div className="container mx-auto p-6">
           <header className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">My Bookmarks</h1>
+            <div className="flex gap-4">
+              <input
+                type="file"
+                accept=".html"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const bookmarks = await parseBookmarksFile(file);
+                    for (const bookmark of bookmarks) {
+                      await bookmarkService.addBookmark(bookmark);
+                    }
+                    loadBookmarks();
+                  }
+                }}
+                className="hidden"
+                id="bookmark-file"
+              />
+              <label 
+                htmlFor="bookmark-file"
+                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 cursor-pointer"
+              >
+                Import Bookmarks
+              </label>
+            </div>
           </header>
           
           <div className="bg-white rounded-lg shadow-md p-6">
