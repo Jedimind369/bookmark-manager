@@ -3,31 +3,28 @@ name: Backup
 
 on:
   push:
-    branches: [ main, dev ]
-  schedule:
-    - cron: "0 0 * * *"
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      
     steps:
       - uses: actions/checkout@v3
       
       - name: Create Backup
         run: |
-          timestamp=$(date +%Y%m%d_%H%M%S)
-          mkdir -p "backup_${timestamp}"
-          cp -r src/ "backup_${timestamp}/"
-          cp -r public/ "backup_${timestamp}/"
-          cp package.json "backup_${timestamp}/"
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add .
+          git commit -m "Backup $(date +'%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+          
+      - name: Create Artifact
+        run: |
+          zip -r backup.zip ./* 
           
       - uses: actions/upload-artifact@v3
         with:
           name: backup
-          path: backup_*
+          path: backup.zip
           retention-days: 7
