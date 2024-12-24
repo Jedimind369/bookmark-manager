@@ -12,7 +12,12 @@ app.use(express.static('dist'));
 app.use((req, res, next) => {
   const userId = req.headers['x-replit-user-id'];
   const userName = req.headers['x-replit-user-name'];
-  if (userId && userName) {
+  
+  if (!userId && req.path !== '/') {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  if (userId) {
     req.user = { id: userId, name: userName };
   }
   next();

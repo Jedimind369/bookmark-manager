@@ -2,25 +2,25 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export const Auth: React.FC = () => {
+const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Add Replit auth script
     const script = document.createElement('script');
     script.src = 'https://auth.util.repl.co/script.js';
     script.setAttribute('data-replit-user-id', 'true');
+    
     script.onload = () => {
-      fetch('/__replauthuser')
-        .then(response => response.json())
-        .then(user => {
-          if (user.id) {
-            navigate('/dashboard');
-          }
-        })
-        .catch(console.error);
+      window.addEventListener('message', (e) => {
+        if (e.data.type === 'authed') {
+          navigate('/dashboard');
+        }
+      });
     };
+    
     document.body.appendChild(script);
-
+    
     return () => {
       document.body.removeChild(script);
     };
