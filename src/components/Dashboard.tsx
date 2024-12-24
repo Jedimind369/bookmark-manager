@@ -1,7 +1,7 @@
 
 import React from 'react';
-import BookmarkList from './BookmarkList';
-import BookmarkForm from './BookmarkForm';
+import { BookmarkList } from './organisms/BookmarkList';
+import { BookmarkForm } from './molecules/BookmarkForm';
 
 const Dashboard: React.FC = () => {
   return (
