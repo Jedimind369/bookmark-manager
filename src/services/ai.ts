@@ -1,3 +1,4 @@
+
 import OpenAI from 'openai';
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
@@ -18,15 +19,15 @@ export const generateTags = async (content: string): Promise<string[]> => {
       model: "gpt-3.5-turbo",
       messages: [{
         role: "system",
-        content: "Generate 3-5 relevant tags for the following content. Return only comma-separated tags."
+        content: "Extract relevant tags from this content. Return only the tags as a comma-separated list."
       }, {
         role: "user",
         content
       }]
     });
 
-    const suggestions = response.choices[0].message.content;
-    return suggestions?.split(',').map(tag => tag.trim()).filter(Boolean) || [];
+    const tags = response.choices[0].message.content?.split(',').map(tag => tag.trim()) || [];
+    return tags;
   } catch (error) {
     console.error('Error generating tags:', error);
     return [];
@@ -35,6 +36,22 @@ export const generateTags = async (content: string): Promise<string[]> => {
 
 export const analyzeContent = async (content: string): Promise<string> => {
   if (!apiKey) return '';
-  // Implementation here
-  return content;
+  
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{
+        role: "system",
+        content: "Analyze this content and provide a brief summary."
+      }, {
+        role: "user",
+        content
+      }]
+    });
+
+    return response.choices[0].message.content || '';
+  } catch (error) {
+    console.error('Error analyzing content:', error);
+    return '';
+  }
 };
