@@ -1,28 +1,39 @@
 
 const express = require('express');
+const { Pool } = require('pg');
 const cors = require('cors');
-const { pool } = require('./models/User');
+const authMiddleware = require('./middleware/auth');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const pool = new Pool({
+  connectionString: process.env.VITE_DATABASE_URL
+});
 
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get('/api/health', async (req, res) => {
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Auth routes
+app.get('/api/auth/user', async (req, res) => {
   try {
-    await pool.query('SELECT 1');
-    res.json({ status: 'healthy' });
+    const response = await fetch('/__replauthuser');
+    const userData = await response.json();
+    res.json(userData);
   } catch (error) {
-    res.status(500).json({ status: 'unhealthy', error: error.message });
+    res.status(401).json({ error: 'Not authenticated' });
   }
 });
 
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/bookmarks', require('./routes/bookmarks'));
-app.use('/api/ai', require('./routes/ai'));
+// Bookmark routes
+app.use('/api/bookmarks', authMiddleware, require('./routes/bookmarks'));
 
+const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
