@@ -1,15 +1,24 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { TextAreaProps } from '../types';
 
-const TextArea: React.FC<TextAreaProps> = ({ placeholder, value, onChange, className = '' }) => {
+export const TextArea: React.FC<TextAreaProps> = ({
+  value,
+  onChange,
+  placeholder,
+  className = '',
+  rows = 3
+}) => {
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e.target.value);
+  };
+
   return (
     <textarea
-      placeholder={placeholder}
       value={value}
-      onChange={onChange}
-      className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+      onChange={handleChange}
+      placeholder={placeholder}
+      rows={rows}
+      className={`w-full p-2 border rounded ${className}`}
     />
   );
 };
-
-export default TextArea;

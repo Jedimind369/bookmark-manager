@@ -1,16 +1,26 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { InputProps } from '../types';
 
-const Input: React.FC<InputProps> = ({ type, placeholder, value, onChange, className = '' }) => {
+export const Input: React.FC<InputProps> = ({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  className = '',
+  required = false
+}) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
+
   return (
     <input
       type={type}
-      placeholder={placeholder}
       value={value}
-      onChange={onChange}
-      className={`w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+      onChange={handleChange}
+      placeholder={placeholder}
+      required={required}
+      className={`w-full p-2 border rounded ${className}`}
     />
   );
 };
-
-export default Input;

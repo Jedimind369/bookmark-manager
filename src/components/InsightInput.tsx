@@ -1,50 +1,38 @@
 import React, { useState } from 'react';
-import { InsightInputProps } from '../types';
-import Input from './Input';
-import Button from './Button';
+import { TextArea } from './TextArea';
 
-const InsightInput: React.FC<InsightInputProps> = ({ insights, onInsightChange }) => {
-  const [newInsight, setNewInsight] = useState('');
+interface InsightInputProps {
+  onInsightAdd: (insight: string) => void;
+  className?: string;
+}
 
-  const handleAddInsight = () => {
-    if (newInsight.trim()) {
-      onInsightChange([...insights, newInsight.trim()]);
-      setNewInsight('');
+export const InsightInput: React.FC<InsightInputProps> = ({ onInsightAdd, className = '' }) => {
+  const [insight, setInsight] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (insight.trim()) {
+      onInsightAdd(insight.trim());
+      setInsight('');
     }
   };
 
-  const handleRemoveInsight = (index: number) => {
-    const updatedInsights = insights.filter((_, i) => i !== index);
-    onInsightChange(updatedInsights);
-  };
-
   return (
-    <div className="space-y-2">
-      <div className="flex space-x-2">
-        <Input
-          type="text"
-          placeholder="Add an insight"
-          value={newInsight}
-          onChange={(e) => setNewInsight(e.target.value)}
-          className="flex-grow"
-        />
-        <Button onClick={handleAddInsight}>Add</Button>
-      </div>
-      <ul className="list-disc list-inside">
-        {insights.map((insight, index) => (
-          <li key={index} className="flex items-center justify-between">
-            <span>{insight}</span>
-            <button
-              onClick={() => handleRemoveInsight(index)}
-              className="text-red-500 hover:text-red-700"
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <form onSubmit={handleSubmit} className={`space-y-2 ${className}`}>
+      <TextArea
+        value={insight}
+        onChange={setInsight}
+        placeholder="Add your insights about this bookmark..."
+        rows={3}
+        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        disabled={!insight.trim()}
+      >
+        Add Insight
+      </button>
+    </form>
   );
 };
-
-export default InsightInput;

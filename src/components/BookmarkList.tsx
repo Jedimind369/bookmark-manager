@@ -1,58 +1,34 @@
 import React from 'react';
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
 import { Bookmark } from '../types';
 
 interface BookmarkListProps {
   bookmarks: Bookmark[];
-  onDelete?: (id: string) => void;
 }
 
-const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks, onDelete }) => {
-  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const bookmark = bookmarks[index];
-    return (
-      <div style={style} className="p-4 border-b hover:bg-gray-50">
-        <h3 className="text-lg font-semibold">{bookmark.title}</h3>
-        <a href={bookmark.url} className="text-blue-500 hover:underline">{bookmark.url}</a>
-        {bookmark.description && (
-          <p className="text-gray-600 mt-1">{bookmark.description}</p>
-        )}
-        <div className="flex gap-2 mt-2">
-          {bookmark.tags.map(tag => (
-            <span key={tag} className="px-2 py-1 bg-gray-100 rounded-full text-sm">
-              {tag}
-            </span>
-          ))}
-        </div>
-        {onDelete && bookmark.id && (
-          <button
-            onClick={() => onDelete(bookmark.id!)}
-            className="mt-2 text-red-500 hover:text-red-700"
-          >
-            Delete
-          </button>
-        )}
-      </div>
-    );
-  };
-
+export const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks }) => {
   return (
-    <div className="h-[600px] w-full">
-      <AutoSizer>
-        {({ height, width }) => (
-          <List
-            height={height}
-            itemCount={bookmarks.length}
-            itemSize={150}
-            width={width}
-          >
-            {Row}
-          </List>
-        )}
-      </AutoSizer>
+    <div className="space-y-4">
+      {bookmarks.map((bookmark) => (
+        <div key={bookmark.id} className="p-4 bg-white rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900">
+            <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
+              {bookmark.title}
+            </a>
+          </h3>
+          {bookmark.description && (
+            <p className="mt-1 text-gray-600">{bookmark.description}</p>
+          )}
+          {bookmark.tags && bookmark.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {bookmark.tags.map((tag) => (
+                <span key={tag} className="px-2 py-1 text-sm bg-gray-100 rounded-full text-gray-700">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
-
-export default BookmarkList;

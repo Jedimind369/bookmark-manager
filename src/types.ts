@@ -18,32 +18,38 @@ export interface Bookmark {
   url: string;
   title: string;
   description?: string;
-  tags: string[];
-  collections: string[];
-  insights?: string[];
+  tags?: string[];
+  collections?: string[];
   categories?: string[];
+  insights?: string[];
   dateAdded: Date;
-  userId: string;
+  syncStatus?: 'pending' | 'synced' | 'error';
+  userId?: string;
+  metadata?: {
+    visitCount?: number;
+    lastVisited?: Date;
+  };
+  personalGrowthNotes?: string;
   analysis?: {
     summary?: string;
     credibilityScore?: number;
+    keyInsights?: string[];
+    readingTime?: number;
   };
-  metadata?: {
-    visitCount: number;
-  };
-  syncStatus?: 'pending' | 'synced' | 'error';
+  createdAt?: Date;
 }
 
 export interface BookmarkFormData {
   url: string;
   title: string;
-  description?: string;
+  description: string;
   tags: string[];
   collections: string[];
-  insights?: string[];
-  categories?: string[];
-  personalGrowthNotes?: string;
+  insights: string[];
+  categories: string[];
 }
+
+export interface FormState extends BookmarkFormData {}
 
 export interface InsightInputProps {
   insights: string[];
@@ -80,4 +86,33 @@ export interface SyncStatus {
   lastSync: Date | null;
   isPending: boolean;
   error: string | null;
+}
+
+export interface ButtonProps {
+  onClick?: () => void;
+  children: ReactNode;
+  className?: string;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+}
+
+export interface InputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  className?: string;
+  required?: boolean;
+}
+
+export interface TextAreaProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  rows?: number;
+}
+
+export interface BookmarkListProps {
+  bookmarks: Bookmark[];
 }
