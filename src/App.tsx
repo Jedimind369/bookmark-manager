@@ -1,13 +1,14 @@
+
 import { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { Header } from './components/Header'
 import BookmarkList from './components/BookmarkList'
-import Test from './components/Test'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { initializeAuth } from './store/authSlice'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { syncBookmarks } from './store/bookmarksSlice'
 import { AppDispatch } from './store'
+
 function App() {
   const dispatch = useDispatch<AppDispatch>()
 

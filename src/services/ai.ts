@@ -4,16 +4,12 @@ import OpenAI from 'openai';
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
 const openai = new OpenAI({
-  apiKey: apiKey || '',
+  apiKey: apiKey || 'dummy-key',
   dangerouslyAllowBrowser: true
 });
 
-if (!apiKey) {
-  console.warn('OpenAI API key not found. AI features will be disabled.');
-}
-
 export const generateTags = async (content: string): Promise<string[]> => {
-  if (!import.meta.env.VITE_OPENAI_API_KEY) {
+  if (!apiKey) {
     console.warn('OpenAI API key not found. Tag generation disabled.');
     return [];
   }
@@ -39,7 +35,7 @@ export const generateTags = async (content: string): Promise<string[]> => {
 };
 
 export const analyzeContent = async (content: string): Promise<string> => {
-  if (!import.meta.env.VITE_OPENAI_API_KEY) {
+  if (!apiKey) {
     return '';
   }
 
