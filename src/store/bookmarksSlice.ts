@@ -37,6 +37,16 @@ const bookmarksSlice = createSlice({
     },
     setSyncStatus: (state, action: PayloadAction<BookmarksState['syncStatus']>) => {
       state.syncStatus = action.payload;
+    },
+  searchBookmarks: (state, action: PayloadAction<string>) => {
+      const query = action.payload.toLowerCase();
+      if (!query) return;
+      state.items = state.items.filter(bookmark => 
+        bookmark.title.toLowerCase().includes(query) ||
+        bookmark.url.toLowerCase().includes(query) ||
+        bookmark.description?.toLowerCase().includes(query) ||
+        bookmark.tags.some(tag => tag.toLowerCase().includes(query))
+      );
     }
   },
   extraReducers: (builder) => {
@@ -56,5 +66,5 @@ const bookmarksSlice = createSlice({
   }
 });
 
-export const { addBookmark, removeBookmark, setSyncStatus } = bookmarksSlice.actions;
+export const { addBookmark, removeBookmark, setSyncStatus, searchBookmarks } = bookmarksSlice.actions;
 export default bookmarksSlice.reducer;
