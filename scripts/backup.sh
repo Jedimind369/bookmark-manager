@@ -1,16 +1,16 @@
 
 #!/bin/bash
+set -e
 
-# Set backup directory with timestamp
-BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
+echo "Starting backup process..."
+pg_dump $VITE_DATABASE_URL > backup.sql
+echo "Database backup completed"
 
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
+# Store backup in Replit's persistent storage
+mkdir -p ~/.backup
+cp backup.sql ~/.backup/latest_backup.sql
+echo "Backup stored in persistent storage"
 
-# Copy important directories and files
-cp -r src/ "$BACKUP_DIR/"
-cp -r public/ "$BACKUP_DIR/"
-cp package.json "$BACKUP_DIR/"
-cp tsconfig.json "$BACKUP_DIR/"
-
-echo "Backup completed in $BACKUP_DIR"
+# Cleanup
+rm backup.sql
+echo "Backup process completed successfully"
