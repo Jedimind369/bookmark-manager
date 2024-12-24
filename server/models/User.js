@@ -1,18 +1,40 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
-const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  tier: { type: String, enum: ['free', 'premium'], default: 'free' },
-  trialEndDate: { type: Date },
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10
 });
 
-UserSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
+const createTables = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        tier VARCHAR(10) DEFAULT 'free',
+        trial_end_date TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS bookmarks (
+        id SERIAL PRIMARY KEY,
+        url TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        tags TEXT[],
+        user_id INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } finally {
+    client.release();
   }
-  next();
-});
+};
 
-module.exports = mongoose.model('User', UserSchema);
+createTables().catch(console.error);
+
+module.exports = {
+  pool,
+  createTables
+};
