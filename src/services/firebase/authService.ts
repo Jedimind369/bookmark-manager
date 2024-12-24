@@ -1,18 +1,15 @@
-import { auth } from '../../config/firebase';
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider,
-  signOut as firebaseSignOut
-} from 'firebase/auth';
 
 export const authService = {
   signIn: async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    return result.user;
+    window.location.href = '/__repl/auth/login';
   },
 
-  signOut: () => firebaseSignOut(auth),
+  signOut: async () => {
+    window.location.href = '/__repl/auth/logout';
+  },
 
-  getCurrentUser: () => auth.currentUser
-}; 
+  getCurrentUser: async () => {
+    const response = await fetch('/__replauthuser');
+    return response.json();
+  }
+};
