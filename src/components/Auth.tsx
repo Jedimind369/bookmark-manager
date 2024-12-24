@@ -1,24 +1,20 @@
 
 import React, { useEffect } from 'react';
-import { authService } from '../services/authService';
+import { useNavigate } from 'react-router-dom';
 
-interface AuthProps {
-  onAuth?: () => void;
-}
+export const Auth: React.FC = () => {
+  const navigate = useNavigate();
 
-export const Auth: React.FC<AuthProps> = ({ onAuth }) => {
   useEffect(() => {
-    // Add Replit auth script
     const script = document.createElement('script');
     script.src = 'https://auth.util.repl.co/script.js';
     script.setAttribute('data-replit-user-id', 'true');
     script.onload = () => {
-      // Check if user is already authenticated
       fetch('/__replauthuser')
         .then(response => response.json())
         .then(user => {
           if (user.id) {
-            onAuth?.();
+            navigate('/dashboard');
           }
         })
         .catch(console.error);
@@ -28,12 +24,12 @@ export const Auth: React.FC<AuthProps> = ({ onAuth }) => {
     return () => {
       document.body.removeChild(script);
     };
-  }, [onAuth]);
+  }, [navigate]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="p-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4">Welcome to Bookmark Manager</h1>
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      <div className="rounded-lg bg-white p-8 shadow-md">
+        <h1 className="mb-4 text-2xl font-bold">Welcome to Bookmark Manager</h1>
         <div id="replit-auth-button"></div>
       </div>
     </div>
