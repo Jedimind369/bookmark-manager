@@ -3,20 +3,23 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
-const Container = styled.div`
+const AuthContainer = styled.div`
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  padding: 20px;
 `;
 
 const AuthBox = styled.div`
   background: white;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
+  max-width: 400px;
+  width: 100%;
 `;
 
 const Auth = () => {
@@ -27,36 +30,29 @@ const Auth = () => {
     script.src = 'https://auth.util.repl.co/script.js';
     script.setAttribute('data-replit-user-id', 'true');
     
-    const handleAuth = (e: MessageEvent) => {
-      if (e.data?.type === 'authed') {
-        fetch('/__replauthuser')
-          .then(response => response.json())
-          .then(user => {
-            if (user?.id) {
-              navigate('/dashboard');
-            }
-          });
-      }
+    script.onload = () => {
+      window.addEventListener('message', (e) => {
+        if (e.data?.type === 'authed') {
+          navigate('/dashboard');
+          window.location.reload();
+        }
+      });
     };
-
-    window.addEventListener('message', handleAuth);
+    
     document.body.appendChild(script);
-
     return () => {
-      window.removeEventListener('message', handleAuth);
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
+      document.body.removeChild(script);
     };
   }, [navigate]);
 
   return (
-    <Container>
+    <AuthContainer>
       <AuthBox>
-        <h1>Welcome to Bookmark Manager</h1>
+        <h1>Welcome</h1>
+        <p>Please sign in to continue</p>
         <div id="replit-auth-button" />
       </AuthBox>
-    </Container>
+    </AuthContainer>
   );
 };
 
