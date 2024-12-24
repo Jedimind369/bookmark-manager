@@ -1,150 +1,101 @@
-import { useState, useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { addBookmark } from '../store/bookmarksSlice'
-import { RootState, AppDispatch } from '../store'
-import { analyzeContent } from '../services/ai'
-import type { BookmarkFormData } from '../types'
 
-interface FormState extends BookmarkFormData {
-  collections: string[]
-}
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { addBookmark } from '../store/bookmarksSlice';
+import { bookmarkService } from '../services/firebase/bookmarkService';
+import { Bookmark } from '../types/bookmark';
+import Button from './atoms/Button';
 
 export function AddBookmark() {
-  const dispatch = useDispatch<AppDispatch>()
-  const { user } = useSelector((state: RootState) => state.auth)
-  const [isOpen, setIsOpen] = useState(false)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [formData, setFormData] = useState<FormState>({
+  const dispatch = useDispatch();
+  const [isOpen, setIsOpen] = useState(false);
+  const [formData, setFormData] = useState({
     url: '',
     title: '',
     description: '',
-    tags: [],
-    collections: []
-  })
+    tags: '',
+    collections: ''
+  });
 
-  const handleUrlChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value
-    setFormData(prev => ({ ...prev, url }))
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (url) {
-      setIsAnalyzing(true)
-      try {
-        const analysis = await analyzeContent(url)
-        setFormData(prev => ({
-          ...prev,
-          title: prev.title || url,
-          description: analysis.summary || '',
-          tags: analysis.suggestedTags || []
-        }))
-      } catch (error) {
-        console.error('Failed to analyze URL:', error)
-      } finally {
-        setIsAnalyzing(false)
-      }
+    const newBookmark: Omit<Bookmark, 'id'> = {
+      url: formData.url,
+      title: formData.title,
+      description: formData.description || '',
+      tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      collections: formData.collections.split(',').map(col => col.trim()).filter(Boolean),
+      dateAdded: new Date(),
+      userId: 'current-user-id', // Replace with actual user ID from auth context
+      syncStatus: 'pending'
+    };
+
+    try {
+      const bookmarkId = await bookmarkService.addBookmark('current-user-id', newBookmark);
+      dispatch(addBookmark({ ...newBookmark, id: bookmarkId }));
+      setIsOpen(false);
+      setFormData({ url: '', title: '', description: '', tags: '', collections: '' });
+    } catch (error) {
+      console.error('Error adding bookmark:', error);
     }
-  }, [])
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (user?.uid) {
-      await dispatch(addBookmark({ 
-        bookmark: formData,
-        userId: user.uid 
-      }))
-      setFormData({ url: '', title: '', description: '', tags: [], collections: [] })
-      setIsOpen(false)
-    }
-  }
-
-  const handleInputChange = useCallback((
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }, [])
-
-  const handleTagsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
-    setFormData(prev => ({ ...prev, tags }))
-  }, [])
+  };
 
   return (
-    <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-      >
-        Add Bookmark
-      </button>
-
+    <div>
+      <Button onClick={() => setIsOpen(true)}>Add Bookmark</Button>
+      
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 dark:text-white">Add New Bookmark</h2>
-            
-            <div className="space-y-4">
-              <div>
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Add New Bookmark</h2>
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
                 <input
                   type="url"
-                  name="url"
                   placeholder="URL"
-                  required
                   value={formData.url}
-                  onChange={handleUrlChange}
-                  className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  disabled={isAnalyzing}
+                  onChange={e => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                  required
                 />
-                {isAnalyzing && (
-                  <p className="text-sm text-gray-500 mt-1">Analyzing content...</p>
-                )}
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={formData.title}
+                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+                <textarea
+                  placeholder="Description"
+                  value={formData.description}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Tags (comma-separated)"
+                  value={formData.tags}
+                  onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Collections (comma-separated)"
+                  value={formData.collections}
+                  onChange={e => setFormData(prev => ({ ...prev, collections: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                />
               </div>
-              
-              <input
-                type="text"
-                name="title"
-                placeholder="Title"
-                required
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-              
-              <textarea
-                name="description"
-                placeholder="Description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-              
-              <input
-                type="text"
-                name="tags"
-                placeholder="Tags (comma separated)"
-                value={formData.tags.join(', ')}
-                onChange={handleTagsChange}
-                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Save
-              </button>
-            </div>
-          </form>
+              <div className="mt-4 flex justify-end space-x-2">
+                <Button onClick={() => setIsOpen(false)} type="button">Cancel</Button>
+                <Button type="submit">Save</Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
-    </>
-  )
-} 
+    </div>
+  );
+}
