@@ -1,25 +1,14 @@
 
 import React from 'react';
-import { AuthProvider } from './contexts/AuthContext';
-import { LoginPage } from './components/pages/LoginPage';
-import { Layout } from './components/templates/Layout';
-import { useAuth } from './contexts/AuthContext';
-
-const AppContent = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  return user ? <Layout /> : <LoginPage />;
-};
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Bookmark Manager</h1>
+        <p className="text-lg">Welcome to your bookmark management system</p>
+      </div>
+    </div>
   );
 };
 
