@@ -21,20 +21,13 @@ jobs:
         with:
           fetch-depth: 0
       
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-      
-      - name: Perform Backup
-        env:
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      - name: Create Backup Directory
         run: |
-          chmod +x ./scripts/backup.sh
-          ./scripts/backup.sh
-        
+          mkdir -p backups
+          cp -r src backups/
+          cp -r public backups/
+          cp package.json backups/
+          
       - name: Upload Backup
         uses: actions/upload-artifact@v3
         with:
