@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Auth } from './components/Auth';
+import { LoginButton } from './components/atoms/LoginButton';
 import { BookmarkForm } from './components/BookmarkForm';
 import BookmarkList from './components/BookmarkList';
 import { bookmarkService } from './services/bookmarkService';
@@ -33,31 +34,23 @@ const App = () => {
     }
   };
 
-  const handleAddBookmark = async (bookmark: Omit<Bookmark, 'id'>) => {
-    try {
-      const id = await bookmarkService.addBookmark(bookmark);
-      setBookmarks([...bookmarks, { ...bookmark, id }]);
-    } catch (error) {
-      console.error('Failed to add bookmark:', error);
-    }
-  };
-
   if (!isLoggedIn) {
-    return <Auth onLogin={() => setIsLoggedIn(true)} />;
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="p-8 bg-white rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold mb-4">Welcome to Bookmark Manager</h1>
+          <LoginButton />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Bookmark Manager</h1>
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Add New Bookmark</h2>
-          <BookmarkForm onSubmit={handleAddBookmark} />
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Your Bookmarks</h2>
-          <BookmarkList bookmarks={bookmarks} />
-        </div>
+        <BookmarkForm />
+        <BookmarkList bookmarks={bookmarks} />
       </div>
     </div>
   );
