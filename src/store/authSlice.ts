@@ -1,10 +1,9 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../services/authService';
-import { User } from '../types';
 
 interface AuthState {
-  user: User | null;
+  user: any;
   loading: boolean;
   error: string | null;
 }
@@ -29,12 +28,14 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       state.user = null;
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
     builder
       .addCase(initializeAuth.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(initializeAuth.fulfilled, (state, action) => {
         state.loading = false;
@@ -42,7 +43,7 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || null;
+        state.error = action.error.message || 'Authentication failed';
       });
   }
 });

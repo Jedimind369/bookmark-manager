@@ -1,17 +1,18 @@
-import { useSelector } from 'react-redux'
-import { RootState } from '../store'
-import { Login } from './Login'
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useSelector((state: RootState) => state.auth)
+import React, { useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Auth } from './Auth';
+
+export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   if (!user) {
-    return <Login />
+    return <Auth />;
   }
 
-  return <>{children}</>
-} 
+  return <>{children}</>;
+};

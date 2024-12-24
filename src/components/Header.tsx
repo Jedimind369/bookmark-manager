@@ -1,34 +1,37 @@
-import { useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { searchBookmarks } from '../store/bookmarksSlice'
-import { AddBookmark } from './AddBookmark'
-import { AppDispatch } from '../store'
 
-export function Header() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const dispatch = useDispatch<AppDispatch>()
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/authService';
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value
-    setSearchQuery(query)
-    dispatch(searchBookmarks(query))
-  }
+export const Header: React.FC = () => {
+  const { user } = useAuth();
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Bookmark Manager</h1>
-        <div className="flex gap-4">
-          <input
-            type="search"
-            placeholder="Search bookmarks..."
-            value={searchQuery}
-            onChange={handleSearch}
-            className="px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-          <AddBookmark />
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <h1 className="text-xl font-bold">Bookmark Manager</h1>
+            </div>
+          </div>
+          <div className="flex items-center">
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700 dark:text-gray-300">
+                  {user.name}
+                </span>
+                <button
+                  onClick={() => authService.logout()}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </nav>
     </header>
-  )
-} 
+  );
+};
