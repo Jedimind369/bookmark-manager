@@ -1,40 +1,64 @@
 
 import React, { useState, useEffect } from 'react';
+import { Auth } from './components/Auth';
+import { BookmarkForm } from './components/BookmarkForm';
+import BookmarkList from './components/BookmarkList';
+import { bookmarkService } from './services/bookmarkService';
+import type { Bookmark } from './types';
 
 const App = () => {
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('Initializing...');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
   useEffect(() => {
-    const steps = [
-      { progress: 20, message: 'Loading components...' },
-      { progress: 40, message: 'Checking authentication...' },
-      { progress: 60, message: 'Setting up database...' },
-      { progress: 80, message: 'Preparing interface...' },
-      { progress: 100, message: 'Ready!' }
-    ];
-
-    steps.forEach(({ progress, message }, index) => {
-      setTimeout(() => {
-        setProgress(progress);
-        setStatus(message);
-      }, index * 800);
-    });
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/__replauthuser');
+        if (response.ok) {
+          setIsLoggedIn(true);
+          loadBookmarks();
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+    };
+    checkAuth();
   }, []);
 
+  const loadBookmarks = async () => {
+    try {
+      const data = await bookmarkService.getBookmarks();
+      setBookmarks(data);
+    } catch (error) {
+      console.error('Failed to load bookmarks:', error);
+    }
+  };
+
+  const handleAddBookmark = async (bookmark: Omit<Bookmark, 'id'>) => {
+    try {
+      const id = await bookmarkService.addBookmark(bookmark);
+      setBookmarks([...bookmarks, { ...bookmark, id }]);
+    } catch (error) {
+      console.error('Failed to add bookmark:', error);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return <Auth onLogin={() => setIsLoggedIn(true)} />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="text-center w-full max-w-md px-4">
-        <h1 className="text-4xl font-bold mb-4">Bookmark Manager</h1>
-        <p className="text-lg mb-8">Welcome to your bookmark management system</p>
-        
-        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          ></div>
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Bookmark Manager</h1>
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Add New Bookmark</h2>
+          <BookmarkForm onSubmit={handleAddBookmark} />
         </div>
-        <p className="text-sm text-gray-600">{status}</p>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Your Bookmarks</h2>
+          <BookmarkList bookmarks={bookmarks} />
+        </div>
       </div>
     </div>
   );
