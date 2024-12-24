@@ -11,12 +11,17 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // API Routes
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
+
+// Serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
 
 // Error handling
 app.use((err, req, res, next) => {
