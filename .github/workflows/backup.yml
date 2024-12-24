@@ -9,34 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-firebase:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Test Firebase Credentials
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-        run: |
-          echo "Testing Firebase credentials..."
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT is not set"
-            exit 1
-          fi
-          if [ -z "$FIREBASE_PROJECT_ID" ]; then
-            echo "::error::FIREBASE_PROJECT_ID secret is not set"
-            exit 1
-          fi
-          echo "$FIREBASE_SERVICE_ACCOUNT" > test-credentials.json
-          if ! jq empty test-credentials.json 2>/dev/null; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT is not valid JSON"
-            rm test-credentials.json
-            exit 1
-          fi
-          rm test-credentials.json
-
   backup:
-    needs: test-firebase
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -55,7 +28,6 @@ jobs:
       
       - name: Perform Backup
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: bash ./scripts/backup.sh
         
