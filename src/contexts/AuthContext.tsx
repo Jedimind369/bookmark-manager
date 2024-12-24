@@ -1,11 +1,6 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  profileImage?: string;
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -22,29 +17,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
       try {
         const response = await fetch('/__replauthuser');
-        const userData = await response.json();
-        setUser(userData);
+        const data = await response.json();
+        if (data.id) {
+          setUser({ id: data.id, email: data.name, uid: data.id });
+        }
       } catch (error) {
-        setUser(null);
+        console.error('Auth check failed:', error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
