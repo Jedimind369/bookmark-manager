@@ -1,3 +1,4 @@
+
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Bookmark } from '../types';
@@ -7,7 +8,7 @@ export const addBookmark = async (bookmark: Bookmark) => {
     const bookmarksRef = collection(db, 'bookmarks');
     const docRef = await addDoc(bookmarksRef, {
       ...bookmark,
-      createdAt: new Date()
+      dateAdded: new Date()
     });
     return { id: docRef.id, ...bookmark };
   } catch (error) {

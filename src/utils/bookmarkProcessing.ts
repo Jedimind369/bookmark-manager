@@ -1,3 +1,4 @@
+
 import { Bookmark, BookmarkFormData } from '../types';
 
 export const parseBookmarksFile = async (file: File): Promise<BookmarkFormData[]> => {
@@ -31,10 +32,10 @@ export const parseBookmarksFile = async (file: File): Promise<BookmarkFormData[]
 };
 
 export const processBookmarkWithAI = async (bookmark: BookmarkFormData): Promise<Bookmark> => {
-  // Add AI processing logic here
   return {
     ...bookmark,
-    userId: '', // This should be set by the calling function
-    createdAt: new Date()
-  };
+    id: crypto.randomUUID(),
+    userId: '', // To be set by calling function
+    dateAdded: new Date()
+  } as Bookmark;
 };
