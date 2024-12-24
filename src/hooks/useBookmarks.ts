@@ -10,7 +10,7 @@ export const useBookmarks = (bookmarks: Bookmark[]) => {
     return [...bookmarks].sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return b.dateAdded.getTime() - a.dateAdded.getTime();
         case 'title':
           return a.title.localeCompare(b.title);
         case 'visits':

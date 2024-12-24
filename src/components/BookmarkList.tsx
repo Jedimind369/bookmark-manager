@@ -18,13 +18,23 @@ const BookmarkList: React.FC<BookmarkListProps> = ({ bookmarks, onDelete }) => {
         {bookmark.description && (
           <p className="text-gray-600 mt-1">{bookmark.description}</p>
         )}
-        <div className="flex gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mt-2">
           {bookmark.tags.map(tag => (
             <span key={tag} className="px-2 py-1 bg-gray-100 rounded-full text-sm">
               {tag}
             </span>
           ))}
+          {bookmark.collections.map(collection => (
+            <span key={collection} className="px-2 py-1 bg-blue-100 rounded-full text-sm">
+              {collection}
+            </span>
+          ))}
         </div>
+        {bookmark.analysis?.credibilityScore && (
+          <div className="mt-2 text-sm">
+            Credibility Score: {bookmark.analysis.credibilityScore}
+          </div>
+        )}
         {onDelete && bookmark.id && (
           <button
             onClick={() => onDelete(bookmark.id!)}
