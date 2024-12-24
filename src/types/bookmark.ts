@@ -1,12 +1,21 @@
+
 export interface Bookmark {
-  id: string;
+  id?: string;
   url: string;
   title: string;
   description?: string;
   tags: string[];
-  category?: string;
-  favicon?: string;
+  collections: string[];
+  insights?: string[];
+  categories?: string[];
+  dateAdded: Date;
   userId: string;
-  createdAt: string;
-  updatedAt: string;
-} 
+  analysis?: {
+    summary?: string;
+    credibilityScore?: number;
+  };
+  metadata?: {
+    visitCount: number;
+  };
+  syncStatus?: 'pending' | 'synced' | 'error';
+}
