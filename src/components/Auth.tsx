@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { signInWithGoogle } from '../store/authSlice';
@@ -9,8 +10,9 @@ export const Auth: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      await dispatch(signInWithGoogle()).unwrap();
+      await dispatch(signInWithGoogle());
     } catch (err) {
+      console.error('Sign in error:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     }
   };

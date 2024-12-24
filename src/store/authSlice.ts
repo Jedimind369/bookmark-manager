@@ -11,15 +11,23 @@ import type { User } from '../types'
 export const signInWithGoogle = createAsyncThunk(
   'auth/signInWithGoogle',
   async () => {
-    const provider = new GoogleAuthProvider()
-    const result = await signInWithPopup(auth, provider)
-    if (!result.user.email) {
-      throw new Error('Email is required')
-    }
-    return {
-      id: result.user.uid,
-      email: result.user.email,
-      uid: result.user.uid
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope('email');
+      const result = await signInWithPopup(auth, provider);
+      
+      if (!result.user.email) {
+        throw new Error('Email is required');
+      }
+      
+      return {
+        id: result.user.uid,
+        email: result.user.email,
+        uid: result.user.uid
+      };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
     }
   }
 )
