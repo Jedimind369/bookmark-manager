@@ -1,24 +1,45 @@
 
 import { Bookmark } from '../types';
-import { db } from '../config/firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10
+});
 
 export const addBookmarkToDB = async (bookmark: Bookmark): Promise<string> => {
-  const docRef = await addDoc(collection(db, 'bookmarks'), bookmark);
-  return docRef.id;
+  const { title, url, description, tags, userId } = bookmark;
+  const result = await pool.query(
+    'INSERT INTO bookmarks (title, url, description, tags, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [title, url, description, tags, userId]
+  );
+  return result.rows[0].id;
 };
 
 export const getBookmarksFromDB = async (userId: string): Promise<Bookmark[]> => {
-  const querySnapshot = await getDocs(collection(db, 'bookmarks'));
-  return querySnapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() } as Bookmark))
-    .filter(bookmark => bookmark.userId === userId);
+  const result = await pool.query(
+    'SELECT * FROM bookmarks WHERE user_id = $1 ORDER BY created_at DESC',
+    [userId]
+  );
+  return result.rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    url: row.url,
+    description: row.description,
+    tags: row.tags,
+    userId: row.user_id,
+    createdAt: row.created_at
+  }));
 };
 
 export const deleteBookmarkFromDB = async (id: string): Promise<void> => {
-  await deleteDoc(doc(db, 'bookmarks', id));
+  await pool.query('DELETE FROM bookmarks WHERE id = $1', [id]);
 };
 
 export const updateBookmarkInDB = async (id: string, data: Partial<Bookmark>): Promise<void> => {
-  await updateDoc(doc(db, 'bookmarks', id), data);
+  const setClause = Object.keys(data)
+    .map((key, index) => `${key} = $${index + 2}`)
+    .join(', ');
+  const values = [id, ...Object.values(data)];
+  await pool.query(`UPDATE bookmarks SET ${setClause} WHERE id = $1`, values);
 };
